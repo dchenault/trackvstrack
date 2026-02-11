@@ -28,7 +28,6 @@ import { generateRandomNickname } from '@/lib/nickname-generator';
 import { getAlbumDetails } from '@/ai/flows/get-album-details';
 import { useToast } from '@/hooks/use-toast';
 import { shuffleArray } from '@/lib/utils';
-import { SpotifyIcon } from '@/components/icons/spotify';
 
 const createBracketFromAlbum = (album: Album): Bracket => {
     const shuffledTracks = shuffleArray([...album.tracks]);
@@ -88,6 +87,7 @@ const createBracketFromAlbum = (album: Album): Bracket => {
     };
 }
 
+type AlbumSource = 'spotify' | 'youtube' | 'musicbrainz';
 
 export default function GroupDashboardPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -120,11 +120,24 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
     }
   }, [authLoading, authUser, params.id]);
 
-  const handleAddAlbum = async (url: string) => {
+  const handleAddAlbum = async (url: string, source: AlbumSource) => {
     if (!firestore || !groupData) return;
     setAddAlbumLoading(true);
 
     try {
+        console.log(`Fetching album from ${source} with URL: ${url}`);
+        
+        // For now, we only have a flow for Spotify. We can build out the others later.
+        if (source !== 'spotify') {
+            toast({
+                variant: 'default',
+                title: 'Feature Coming Soon!',
+                description: `Importing from ${source} is not yet implemented.`,
+            });
+            setAddAlbumLoading(false);
+            return;
+        }
+
         const albumDetails = await getAlbumDetails({ url });
         
         const trackCount = albumDetails.tracks.length;
@@ -258,12 +271,9 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
       <Dialog open={showAddAlbumDialog} onOpenChange={setShowAddAlbumDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <SpotifyIcon className="w-6 h-6 text-green-500" />
-              Start a New Bracket
-            </DialogTitle>
+            <DialogTitle>Start a New Bracket</DialogTitle>
             <DialogDescription>
-              Paste a Spotify album URL to generate a new tournament bracket. I'll fetch the album art and tracklist for you.
+              Paste an album URL from Spotify, YouTube, or MusicBrainz to generate a new tournament bracket.
             </DialogDescription>
           </DialogHeader>
           <AddAlbum onAlbumAdd={handleAddAlbum} loading={addAlbumLoading} />
