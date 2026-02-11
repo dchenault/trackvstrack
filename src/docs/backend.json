@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "Group": {
+      "title": "Group",
+      "description": "Represents a user group for a tournament.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the group."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns the group."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of when the group was created."
+        },
+        "activeBracket": {
+            "type": "object",
+            "description": "The current active bracket for the group."
+        },
+        "archivedBrackets": {
+            "type": "array",
+            "description": "A list of past brackets for the group."
+        }
+      },
+      "required": ["name", "ownerId", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Represents a user within a group.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The user's nickname for the group."
+        }
+      },
+      "required": ["name"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "google.com"
+    ]
+  },
+  "firestore": {
+    "/groups/{groupId}": {
+      "schema": {
+        "$ref": "#/entities/Group"
+      },
+      "description": "Collection of all groups."
+    },
+    "/groups/{groupId}/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Sub-collection of users within a group."
+    }
+  }
+}

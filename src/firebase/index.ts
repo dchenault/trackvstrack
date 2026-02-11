@@ -13,6 +13,8 @@ export function initializeFirebase(): { app: FirebaseApp; auth: Auth; firestore:
 export { FirebaseClientProvider } from './client-provider';
 export { FirebaseProvider, useFirebase, useFirebaseApp, useAuth, useFirestore } from './provider';
 export { useUser } from './auth/use-user';
+export { useDoc } from './firestore/use-doc';
+export { useCollection } from './firestore/use-collection';
 export { errorEmitter } from './error-emitter';
 export { FirestorePermissionError } from './errors';
 export type { SecurityRuleContext } from './errors';

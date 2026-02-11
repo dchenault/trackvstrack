@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function Home() {
   const { user, loading } = useUser();
 
-  const playUrl = user ? '/group/123-abc-789' : '/login';
+  const playUrl = user ? '/create-group' : '/login';
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">

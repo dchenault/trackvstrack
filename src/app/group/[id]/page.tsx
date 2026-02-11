@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { MOCK_GROUP, MOCK_GROUP_NO_BRACKET } from '@/lib/data';
-import type { Group } from '@/lib/types';
+import { useState, useEffect, useMemo } from 'react';
+import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
+import { doc, collection, setDoc, query, serverTimestamp } from 'firebase/firestore';
+import type { Group, User as GroupUser, Bracket } from '@/lib/types';
 import Header from '@/components/group/Header';
 import CurrentMatchup from '@/components/group/CurrentMatchup';
 import BracketVisualizer from '@/components/group/BracketVisualizer';
@@ -18,94 +19,168 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+// Temporary mock data for bracket creation until album selection is implemented
+const getMockBracket = (): Bracket => {
+    const neonDreamsArt = PlaceHolderImages.find(img => img.id === 'album-1-art')?.imageUrl ?? 'https://picsum.photos/seed/101/500/500';
+    const album1Tracks = [
+        { id: 't1', name: 'Sunrise Drive', trackNumber: 1, previewUrl: null },
+        { id: 't2', name: 'Chrome Reflections', trackNumber: 2, previewUrl: null },
+        { id: 't3', name: 'Midnight Circuit', trackNumber: 3, previewUrl: null },
+        { id: 't4', name: 'Digital Bloom', trackNumber: 4, previewUrl: null },
+        { id: 't5', name: 'Starlight Cassette', trackNumber: 5, previewUrl: null },
+        { id: 't6', name: 'Sunset Grid', trackNumber: 6, previewUrl: null },
+        { id: 't7', name: 'Virtual Plaza', trackNumber: 7, previewUrl: null },
+        { id: 't8', name: 'Ocean Drive', trackNumber: 8, previewUrl: null },
+    ];
+    const album = {
+        id: 'album-1',
+        name: 'Neon Dreams',
+        artist: 'Synthwave Rider',
+        artworkUrl: neonDreamsArt,
+        tracks: album1Tracks,
+    };
+    const round1Matchups = [];
+    for (let i = 0; i < album.tracks.length; i += 2) {
+        round1Matchups.push({
+        id: `m-r1-${i/2}`,
+        track1: album.tracks[i],
+        track2: album.tracks[i+1],
+        winner: null,
+        votes: { track1: 0, track2: 0 },
+        });
+    }
+    return {
+        id: `bracket-${album.id}`,
+        album,
+        rounds: [{ id: 'round-1', name: 'Quarter Finals', matchups: round1Matchups }, { id: 'round-2', name: 'Semi Finals', matchups: [{ id: 'm-r2-1', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }, { id: 'm-r2-2', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }] }, { id: 'round-3', name: 'Final', matchups: [{ id: 'm-r3-1', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }] }],
+        status: 'active',
+        winner: null,
+    };
+};
+
 
 export default function GroupPage({ params }: { params: { id: string } }) {
-  const [group, setGroup] = useState<Group | null>(null);
+  const router = useRouter();
+  const firestore = useFirestore();
+  const { user: authUser, loading: authLoading } = useUser();
+
   const [showJoinModal, setShowJoinModal] = useState(false);
-  const [username, setUsername] = useState('');
-  const [isMounted, setIsMounted] = useState(false);
+  const [nickname, setNickname] = useState('');
+  
+  const groupRef = useMemo(() => firestore ? doc(firestore, 'groups', params.id) : null, [firestore, params.id]);
+  const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'groups', params.id, 'users')) : null, [firestore, params.id]);
+
+  const { data: groupData, loading: groupLoading } = useDoc<Omit<Group, 'users'>>(groupRef);
+  const { data: usersData, loading: usersLoading } = useCollection<GroupUser>(usersQuery);
+
+  const loading = authLoading || groupLoading || usersLoading;
 
   useEffect(() => {
-    setIsMounted(true);
-    const initialGroup = params.id === '123-abc-789' ? MOCK_GROUP : MOCK_GROUP_NO_BRACKET;
-    setGroup(initialGroup);
+    if (loading || !authUser || !groupData) return;
 
-    const storedUser = localStorage.getItem(`trackvstrack_user_${params.id}`);
-    if (!storedUser) {
-      setShowJoinModal(true);
-    } else {
-      setUsername(JSON.parse(storedUser).name);
+    const isMember = usersData.some(member => member.id === authUser.uid);
+    if (!isMember) {
+        setShowJoinModal(true);
     }
-  }, [params.id]);
+  }, [authUser, usersData, groupData, loading]);
 
-  const handleJoinGroup = () => {
-    if (username.trim()) {
-      const user = { id: `user-${Date.now()}`, name: username.trim() };
-      localStorage.setItem(`trackvstrack_user_${params.id}`, JSON.stringify(user));
-      setGroup(prevGroup => prevGroup ? { ...prevGroup, users: [...prevGroup.users, user] } : null);
-      setShowJoinModal(false);
+  const handleJoinGroup = async () => {
+    if (!nickname.trim() || !firestore || !authUser) return;
+
+    try {
+        const userRef = doc(firestore, 'groups', params.id, 'users', authUser.uid);
+        await setDoc(userRef, { name: nickname.trim() });
+        setShowJoinModal(false);
+        setNickname('');
+    } catch (error) {
+        console.error("Error joining group:", error);
     }
   };
 
-  const handleAddAlbum = () => {
-    setGroup(prev => prev ? {...MOCK_GROUP, name: prev.name, users: prev.users } : null);
+  const handleAddAlbum = async () => {
+    if (!firestore || !groupData) return;
+    const bracketData = getMockBracket();
+    const groupDocRef = doc(firestore, 'groups', params.id);
+    await setDoc(groupDocRef, { activeBracket: bracketData }, { merge: true });
   }
 
-  if (!isMounted || !group) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p>Loading group...</p>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
 
+  if (!groupData) {
+      return (
+        <div className="flex flex-col gap-4 items-center justify-center min-h-screen">
+            <h1 className="text-2xl font-bold">Group not found</h1>
+            <p>This group may have been deleted or the link is incorrect.</p>
+            <Button onClick={() => router.push('/create-group')}>Create a new group</Button>
+      </div>
+      );
+  }
+
+  const group: Group = {
+      ...groupData,
+      id: params.id,
+      users: usersData || []
+  };
+
   const activeMatchup = group.activeBracket?.rounds
     .flatMap(r => r.matchups)
     .find(m => m.winner === null && m.track1 && m.track2);
-
+    
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header group={group} />
       
       <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col items-center gap-12">
-        {group.activeBracket && activeMatchup && (
+        {group.activeBracket && activeMatchup ? (
           <CurrentMatchup matchup={activeMatchup} albumArtUrl={group.activeBracket.album.artworkUrl} />
-        )}
-
-        {group.activeBracket ? (
-          <>
-            <Separator className="w-1/2 bg-border/20" />
-            <BracketVisualizer bracket={group.activeBracket} />
-          </>
+        ) : group.activeBracket ? (
+             <BracketVisualizer bracket={group.activeBracket} />
         ) : (
           <AddAlbum onAlbumAdd={handleAddAlbum} />
         )}
+
+        {group.activeBracket && activeMatchup && (
+            <>
+                <Separator className="w-1/2 bg-border/20" />
+                <BracketVisualizer bracket={group.activeBracket} />
+            </>
+        )}
       </main>
 
-      <Dialog open={showJoinModal} onOpenChange={setShowJoinModal}>
+      <Dialog open={showJoinModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Join {group.name}</DialogTitle>
             <DialogDescription>
-              Enter a display name to join the group and start voting.
+              Choose a nickname to join this group.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
+              <Label htmlFor="nickname" className="text-right">
+                Nickname
               </Label>
               <Input
-                id="name"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
                 className="col-span-3"
                 placeholder="Your display name"
                 onKeyDown={(e) => e.key === 'Enter' && handleJoinGroup()}
               />
             </div>
           </div>
-          <Button onClick={handleJoinGroup}>Join Group</Button>
+          <Button onClick={handleJoinGroup} disabled={!nickname.trim()}>Join Group</Button>
         </DialogContent>
       </Dialog>
     </div>

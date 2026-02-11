@@ -14,15 +14,7 @@ export default function SignInWithGoogleButton({ redirectUrl }: { redirectUrl: s
         if (!auth) return;
         const provider = new GoogleAuthProvider();
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            
-            const groupId = redirectUrl.split('/').pop();
-
-            if (user.displayName && groupId) {
-                const userData = { id: user.uid, name: user.displayName };
-                localStorage.setItem(`trackvstrack_user_${groupId}`, JSON.stringify(userData));
-            }
+            await signInWithPopup(auth, provider);
             router.push(redirectUrl);
         } catch (error) {
             console.error("Error signing in with Google", error);

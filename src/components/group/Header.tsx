@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Music, Users, Link as LinkIcon, Share2 } from 'lucide-react';
+import { Music, Users, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Group } from '@/lib/types';
 import {
@@ -12,13 +12,16 @@ import {
 } from "@/components/ui/tooltip"
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
+import UserProfile from '@/components/auth/UserProfile';
 
 export default function Header({ group }: { group: Group }) {
   const { toast } = useToast();
   const [shareLink, setShareLink] = useState('');
 
   useEffect(() => {
-    setShareLink(window.location.href);
+    if (typeof window !== 'undefined') {
+        setShareLink(window.location.href);
+    }
   }, []);
 
   const copyToClipboard = () => {
@@ -30,39 +33,40 @@ export default function Header({ group }: { group: Group }) {
   };
 
   return (
-    <header className="py-6 px-4 md:px-8 border-b border-white/10">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+    <header className="py-4 px-4 md:px-8 border-b border-white/10 sticky top-0 bg-background/80 backdrop-blur-sm z-50">
+      <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
             <Link href="/" className="text-primary hover:brightness-125 transition-all">
                 <Music />
             </Link>
-            <span>{group.name}</span>
-          </h1>
-          <div className="flex items-center gap-4 mt-2 text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>{group.users.length} members</span>
+            <div>
+              <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+                <span>{group.name}</span>
+              </h1>
+              <div className="flex items-center gap-4 mt-1 text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm">
+                  <Users className="h-4 w-4" />
+                  <span>{group.users.length} members</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <LinkIcon className="h-4 w-4" />
-              <p className="font-mono text-sm bg-card/50 px-2 py-1 rounded-md">{shareLink}</p>
-            </div>
-          </div>
         </div>
-        <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button onClick={copyToClipboard} variant="secondary" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/50">
-              <Share2 className="mr-2 h-4 w-4" />
-              Share Link
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Copy invite link</p>
-          </TooltipContent>
-        </Tooltip>
-        </TooltipProvider>
+        <div className="flex items-center gap-4">
+            <TooltipProvider>
+                <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button onClick={copyToClipboard} variant="outline" size="sm" className="hidden md:inline-flex">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Copy invite link: <span className="font-mono text-xs bg-card/50 px-1 py-0.5 rounded-sm">{shareLink}</span></p>
+                </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            <UserProfile />
+        </div>
       </div>
     </header>
   );

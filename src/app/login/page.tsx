@@ -14,7 +14,7 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (!loading && user) {
-            router.push('/group/123-abc-789');
+            router.push('/create-group');
         }
     }, [user, loading, router]);
 
@@ -41,7 +41,7 @@ export default function LoginPage() {
                 </p>
             </div>
             <div className="w-full max-w-sm">
-                <SignInWithGoogleButton redirectUrl="/group/123-abc-789" />
+                <SignInWithGoogleButton redirectUrl="/create-group" />
             </div>
         </div>
     );
