@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Music, Users, Share2 } from 'lucide-react';
+import { LayoutDashboard, Music, Users, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Group } from '@/lib/types';
 import {
@@ -58,6 +58,12 @@ export default function Header({
                 </div>
               </div>
             </div>
+             <Button variant="outline" size="sm" asChild className="hidden md:flex">
+                <Link href={`/group/${group.id}/dashboard`}>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard
+                </Link>
+            </Button>
         </div>
         <div className="flex items-center gap-4">
             <TooltipProvider>

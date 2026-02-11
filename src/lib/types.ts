@@ -49,5 +49,6 @@ export interface Group {
   ownerId: string;
   users: User[];
   activeBracket: Bracket | null;
+  pendingBrackets: Bracket[];
   archivedBrackets: Bracket[];
 }

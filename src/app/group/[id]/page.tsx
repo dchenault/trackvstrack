@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, setDoc, query, serverTimestamp } from 'firebase/firestore';
-import type { Group, User as GroupUser, Bracket } from '@/lib/types';
+import { doc, collection, setDoc, query } from 'firebase/firestore';
+import type { Group, User as GroupUser } from '@/lib/types';
 import Header from '@/components/group/Header';
 import CurrentMatchup from '@/components/group/CurrentMatchup';
 import BracketVisualizer from '@/components/group/BracketVisualizer';
-import AddAlbum from '@/components/group/AddAlbum';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -22,48 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { generateRandomNickname } from '@/lib/nickname-generator';
-
-// Temporary mock data for bracket creation until album selection is implemented
-const getMockBracket = (): Bracket => {
-    const neonDreamsArt = PlaceHolderImages.find(img => img.id === 'album-1-art')?.imageUrl ?? 'https://picsum.photos/seed/101/500/500';
-    const album1Tracks = [
-        { id: 't1', name: 'Sunrise Drive', trackNumber: 1, previewUrl: null },
-        { id: 't2', name: 'Chrome Reflections', trackNumber: 2, previewUrl: null },
-        { id: 't3', name: 'Midnight Circuit', trackNumber: 3, previewUrl: null },
-        { id: 't4', name: 'Digital Bloom', trackNumber: 4, previewUrl: null },
-        { id: 't5', name: 'Starlight Cassette', trackNumber: 5, previewUrl: null },
-        { id: 't6', name: 'Sunset Grid', trackNumber: 6, previewUrl: null },
-        { id: 't7', name: 'Virtual Plaza', trackNumber: 7, previewUrl: null },
-        { id: 't8', name: 'Ocean Drive', trackNumber: 8, previewUrl: null },
-    ];
-    const album = {
-        id: 'album-1',
-        name: 'Neon Dreams',
-        artist: 'Synthwave Rider',
-        artworkUrl: neonDreamsArt,
-        tracks: album1Tracks,
-    };
-    const round1Matchups = [];
-    for (let i = 0; i < album.tracks.length; i += 2) {
-        round1Matchups.push({
-        id: `m-r1-${i/2}`,
-        track1: album.tracks[i],
-        track2: album.tracks[i+1],
-        winner: null,
-        votes: { track1: 0, track2: 0 },
-        });
-    }
-    return {
-        id: `bracket-${album.id}`,
-        album,
-        rounds: [{ id: 'round-1', name: 'Quarter Finals', matchups: round1Matchups }, { id: 'round-2', name: 'Semi Finals', matchups: [{ id: 'm-r2-1', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }, { id: 'm-r2-2', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }] }, { id: 'round-3', name: 'Final', matchups: [{ id: 'm-r3-1', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }] }],
-        status: 'active',
-        winner: null,
-    };
-};
-
 
 export default function GroupPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -123,13 +83,6 @@ export default function GroupPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleAddAlbum = async () => {
-    if (!firestore || !groupData) return;
-    const bracketData = getMockBracket();
-    const groupDocRef = doc(firestore, 'groups', params.id);
-    await setDoc(groupDocRef, { activeBracket: bracketData }, { merge: true });
-  }
-
   const handleChangeNickname = () => {
     if (guestNickname) {
       setNewNickname(guestNickname);
@@ -171,6 +124,8 @@ export default function GroupPage({ params }: { params: { id: string } }) {
       users: usersData || []
   };
 
+  const isOwner = authUser?.uid === group.ownerId;
+
   const activeMatchup = group.activeBracket?.rounds
     .flatMap(r => r.matchups)
     .find(m => m.winner === null && m.track1 && m.track2);
@@ -189,7 +144,19 @@ export default function GroupPage({ params }: { params: { id: string } }) {
         ) : group.activeBracket ? (
              <BracketVisualizer bracket={group.activeBracket} />
         ) : (
-          <AddAlbum onAlbumAdd={handleAddAlbum} />
+          <Card className="w-full max-w-lg mx-auto mt-16 text-center">
+            <CardHeader>
+                <CardTitle>No Active Bracket</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">There's no album bracket running right now.</p>
+                {isOwner && (
+                    <Button asChild className="mt-4">
+                        <Link href={`/group/${params.id}/dashboard`}>Go to Dashboard</Link>
+                    </Button>
+                )}
+            </CardContent>
+          </Card>
         )}
 
         {group.activeBracket && activeMatchup && (

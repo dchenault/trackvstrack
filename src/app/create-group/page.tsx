@@ -79,6 +79,7 @@ export default function CreateGroupPage() {
                 ownerId: user.uid,
                 createdAt: serverTimestamp(),
                 activeBracket: null,
+                pendingBrackets: [],
                 archivedBrackets: []
             });
 
