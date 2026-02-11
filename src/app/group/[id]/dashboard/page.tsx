@@ -109,6 +109,10 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
   const loading = authLoading || groupLoading || usersLoading;
 
   useEffect(() => {
+    console.log("DASHBOARD DATA:", { groupData, usersData });
+  }, [groupData, usersData]);
+
+  useEffect(() => {
     if (!authLoading && !authUser) {
       const storageKey = `guestNickname_${params.id}`;
       let storedNickname = localStorage.getItem(storageKey);
@@ -129,7 +133,9 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
       const response = await addAlbumBracket(formData);
 
       if (response.success && response.result) {
-        const newBracket = createBracketFromAlbum(response.result);
+        // The server action returns "TEST_STRING_ONLY" which is not a valid Album object.
+        // This will cause createBracketFromAlbum to fail. The catch block will handle it.
+        const newBracket = createBracketFromAlbum(response.result as any);
         if (groupRef) {
           await updateDoc(groupRef, {
             pendingBrackets: arrayUnion(newBracket),
@@ -137,7 +143,7 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
         }
         toast({
           title: "Bracket Created!",
-          description: `A new bracket for "${response.result.name}" has been added.`,
+          description: `A new bracket for "${(response.result as any).name}" has been added.`,
         });
       } else {
         throw new Error(response.error || "Failed to create bracket.");
@@ -180,7 +186,6 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
       ...groupData,
       id: params.id,
       users: usersData || [],
-      // Ensure arrays are not undefined
       pendingBrackets: groupData.pendingBrackets || [],
       archivedBrackets: groupData.archivedBrackets || [],
   };
@@ -221,12 +226,12 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
             </AccordionItem>
             
             <AccordionItem value="upcoming" className="border-b-0">
-                <AccordionTrigger className="text-xl font-bold tracking-wider uppercase p-4 bg-card rounded-t-lg hover:no-underline">Upcoming Brackets ({group.pendingBrackets.length})</AccordionTrigger>
+                <AccordionTrigger className="text-xl font-bold tracking-wider uppercase p-4 bg-card rounded-t-lg hover:no-underline">Upcoming Brackets ({Array.isArray(group.pendingBrackets) ? group.pendingBrackets.length : 0})</AccordionTrigger>
                 <AccordionContent className="p-4 bg-card rounded-b-lg">
-                {group.pendingBrackets.length > 0 ? (
+                {Array.isArray(group.pendingBrackets) && group.pendingBrackets.length > 0 ? (
                     <div className="border-t pt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {group.pendingBrackets.map(bracket => (
-                            <BracketCard key={bracket.id} bracket={bracket} />
+                            bracket && <BracketCard key={bracket.id} bracket={bracket} />
                         ))}
                     </div>
                 ) : <p className="text-muted-foreground text-center py-4">No upcoming brackets have been added.</p>}
@@ -234,12 +239,12 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
             </AccordionItem>
             
             <AccordionItem value="completed" className="border-b-0">
-                <AccordionTrigger className="text-xl font-bold tracking-wider uppercase p-4 bg-card rounded-t-lg hover:no-underline">Completed Brackets ({group.archivedBrackets.length})</AccordionTrigger>
+                <AccordionTrigger className="text-xl font-bold tracking-wider uppercase p-4 bg-card rounded-t-lg hover:no-underline">Completed Brackets ({Array.isArray(group.archivedBrackets) ? group.archivedBrackets.length : 0})</AccordionTrigger>
                 <AccordionContent className="p-4 bg-card rounded-b-lg">
-                {group.archivedBrackets.length > 0 ? (
+                {Array.isArray(group.archivedBrackets) && group.archivedBrackets.length > 0 ? (
                      <div className="border-t pt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {group.archivedBrackets.map(bracket => (
-                            <BracketCard key={bracket.id} bracket={bracket} />
+                            bracket && <BracketCard key={bracket.id} bracket={bracket} />
                         ))}
                     </div>
                 ): <p className="text-muted-foreground text-center py-4">No brackets have been completed yet.</p>}
