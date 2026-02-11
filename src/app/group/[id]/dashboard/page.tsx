@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collection, query } from 'firebase/firestore';
 import type { Group, User as GroupUser } from '@/lib/types';
 import Header from '@/components/group/Header';
 import AddAlbum from '@/components/group/AddAlbum';
 import BracketCard from '@/components/group/BracketCard';
+import { Card } from '@/components/ui/card';
 import {
   Accordion,
   AccordionContent,
@@ -49,8 +51,10 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
   const loading = authLoading || groupLoading || usersLoading;
 
   useEffect(() => {
-    console.log("DASHBOARD DATA:", { groupData, usersData });
-  }, [groupData, usersData]);
+    if (groupData) {
+      console.log("DASHBOARD DATA:", JSON.stringify(groupData, null, 2));
+    }
+  }, [groupData]);
 
   useEffect(() => {
     if (!authLoading && !authUser) {
@@ -124,6 +128,8 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
   };
 
   const isOwner = authUser?.uid === group.ownerId;
+  const safePendingBrackets = Array.isArray(group.pendingBrackets) ? group.pendingBrackets : [];
+  console.log("SAFE PENDING BRACKETS TO RENDER:", JSON.stringify(safePendingBrackets));
     
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -159,12 +165,27 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
             </AccordionItem>
             
             <AccordionItem value="upcoming" className="border-b-0">
-                <AccordionTrigger className="text-xl font-bold tracking-wider uppercase p-4 bg-card rounded-t-lg hover:no-underline">Upcoming Brackets ({Array.isArray(group.pendingBrackets) ? group.pendingBrackets.length : 0})</AccordionTrigger>
+                <AccordionTrigger className="text-xl font-bold tracking-wider uppercase p-4 bg-card rounded-t-lg hover:no-underline">Upcoming Brackets ({safePendingBrackets.length})</AccordionTrigger>
                 <AccordionContent className="p-4 bg-card rounded-b-lg">
-                {Array.isArray(group.pendingBrackets) && group.pendingBrackets.length > 0 ? (
+                {safePendingBrackets.length > 0 ? (
                     <div className="border-t pt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                        {group.pendingBrackets.map(bracket => (
-                            bracket && <BracketCard key={bracket.id} bracket={bracket} />
+                        {safePendingBrackets.map((bracket: any, index: number) => (
+                           <Card key={bracket?.id || index} className="overflow-hidden transition-shadow hover:shadow-lg group border-none">
+                                <div className="relative aspect-square">
+                                    <Image
+                                        src={bracket?.album?.artworkUrl || "https://picsum.photos/seed/placeholder/400/400"}
+                                        alt={`Album art for ${bracket?.album?.name || "Untitled Album"}`}
+                                        fill
+                                        className="object-cover transition-transform group-hover:scale-105"
+                                        data-ai-hint="abstract colorful"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                                        <h3 className="text-lg font-bold truncate">{bracket?.album?.name || "Untitled Album"}</h3>
+                                        <p className="text-sm text-muted-foreground truncate">{bracket?.album?.artist || "Unknown Artist"}</p>
+                                    </div>
+                                </div>
+                            </Card>
                         ))}
                     </div>
                 ) : <p className="text-muted-foreground text-center py-4">No upcoming brackets have been added.</p>}

@@ -4,7 +4,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 import { fetchYoutubePlaylistDetails } from '@/ai/flows/get-youtube-playlist-details';
-import type { Album, Bracket } from '@/lib/types';
+import type { Album, Bracket, Track } from '@/lib/types';
 import { shuffleArray } from '@/lib/utils';
 
 // Initialize Firebase if not already initialized for server-side usage.
@@ -77,30 +77,26 @@ export async function addAlbumBracket(formData: FormData) {
   try {
     console.log("STEP 1 - Calling fetchYoutubePlaylistDetails with URL:", url);
     const playlistData = await fetchYoutubePlaylistDetails({ url });
-    console.log("STEP 2 - Fetched playlist data");
+    console.log("STEP 2 - Fetched playlist data:", playlistData);
 
-    // Transform API data into our Album type
-    const album: Album = {
-      id: `youtube-${playlistData.playlistId}`,
-      name: playlistData.title,
-      artist: 'Various Artists', // YouTube playlists often don't have a single artist
-      artworkUrl: playlistData.image,
-      tracks: playlistData.tracks.map((title, index) => ({
-        id: `yt-track-${playlistData.playlistId}-${index}`,
-        name: title,
-        trackNumber: index + 1,
-        previewUrl: null,
-      })),
+    const simpleBracketData = {
+      id: `bracket-yt-${playlistData.playlistId}-${Date.now()}`,
+      album: {
+        id: `album-yt-${playlistData.playlistId}`,
+        name: playlistData.title,
+        artist: 'Various Artists',
+        artworkUrl: playlistData.image,
+      },
+      // Storing raw track titles for now. Full track objects can be generated later.
+      tracks: playlistData.tracks, 
+      status: 'pending',
+      winner: null,
+      rounds: [], // Rounds will be generated when the bracket is started.
     };
-    
-    // Create a bracket object
-    const newBracket = createBracketFromAlbum(album);
-    
-    // Save the new bracket to Firestore.
-    // The `newBracket` object needs to be converted to a plain JS object for Firestore.
-    const plainBracketObject = JSON.parse(JSON.stringify(newBracket));
 
-    console.log("STEP 3 - Saving bracket to Firestore for group:", groupId);
+    const plainBracketObject = JSON.parse(JSON.stringify(simpleBracketData));
+
+    console.log("STEP 3 - Saving simplified bracket to Firestore for group:", groupId);
     const groupRef = doc(firestore, 'groups', groupId);
     await updateDoc(groupRef, {
         pendingBrackets: arrayUnion(plainBracketObject),
