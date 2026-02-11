@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Play, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
@@ -14,19 +15,14 @@ export default function Home() {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-background text-foreground overflow-hidden">
-      {/* Background Grid */}
-      <div
-        className="absolute inset-0 z-0 opacity-20"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, hsl(var(--primary)) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--primary)) 1px, transparent 1px)',
-          backgroundSize: '3.5rem 3.5rem',
-          transform: 'perspective(500px) rotateX(50deg) scale(1.5) translateY(20%)',
-          transformOrigin: 'center',
-          maskImage: 'radial-gradient(ellipse at center, white 20%, transparent 80%)',
-        }}
+      <Image
+        src="https://static.vecteezy.com/system/resources/previews/013/787/732/non_2x/a-80s-grid-background-with-a-neon-horizon-vector.jpg"
+        alt="80s retro grid background"
+        fill
+        className="object-cover z-0"
+        priority
       />
-      <div className="absolute inset-0 z-10 bg-gradient-to-t from-background via-background/80 to-background" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-background/50 via-background/80 to-background" />
 
       <header className="absolute top-4 right-4 z-20">
         {loading ? (
@@ -40,7 +36,7 @@ export default function Home() {
 
       <main className="relative z-20 text-center flex flex-col items-center px-4">
         <h1
-          className="text-6xl md:text-8xl font-black text-secondary font-headline animate-neon-glow"
+          className="text-6xl md:text-8xl font-black text-primary font-headline animate-neon-glow"
         >
           Track vs Track
         </h1>
