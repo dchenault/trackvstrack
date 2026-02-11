@@ -8,6 +8,6 @@ runConfig:
   # IMPORTANT: Replace placeholder values with your actual API keys.
   # For better security, use Secret Manager: https://firebase.google.com/docs/app-hosting/configure#secret-manager
   environmentVariables:
-    GEMINI_API_KEY: 'YOUR_GEMINI_API_KEY_HERE'
+    GEMINI_API_KEY: 'AIzaSyCBrprPy-5GMcAkw7ITTPqEGNxjgW5KP4M'
     YOUTUBE_API_KEY: 'AIzaSyCBrprPy-5GMcAkw7ITTPqEGNxjgW5KP4M'
 
