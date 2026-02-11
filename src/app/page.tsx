@@ -34,18 +34,13 @@ export default function Home() {
         ) : user ? (
           <UserProfile />
         ) : (
-          <Button asChild variant="outline" className="bg-transparent border-primary/50 text-white hover:bg-primary/20">
-            <Link href="/login">Login</Link>
-          </Button>
+          null
         )}
       </header>
 
       <main className="relative z-20 text-center flex flex-col items-center px-4">
         <h1
-          className="text-6xl md:text-8xl font-black text-secondary font-headline"
-          style={{
-            textShadow: '0 0 8px hsl(var(--primary)), 0 0 20px hsl(var(--primary))',
-          }}
+          className="text-6xl md:text-8xl font-black text-secondary font-headline animate-neon-glow"
         >
           Track vs Track
         </h1>
