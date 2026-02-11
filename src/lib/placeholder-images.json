@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "album-1-art",
+      "description": "Album art for 'Neon Dreams'",
+      "imageUrl": "https://images.unsplash.com/photo-1541661538396-53ba2d051eed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMGNvbG9yZnVsfGVufDB8fHx8MTc3MDc1MDE2NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract colorful"
+    },
+    {
+      "id": "album-2-art",
+      "description": "Album art for 'City Lights'",
+      "imageUrl": "https://images.unsplash.com/photo-1506606401543-2e73709cebb4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjaXR5JTIwbmlnaHR8ZW58MHx8fHwxNzcwNzAzOTAzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city night"
+    }
+  ]
 }
