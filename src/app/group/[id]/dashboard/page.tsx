@@ -25,10 +25,9 @@ import { Button } from '@/components/ui/button';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { generateRandomNickname } from '@/lib/nickname-generator';
-import { getAlbumDetails } from '@/ai/flows/get-album-details';
-import { getYoutubePlaylistDetails } from '@/ai/flows/get-youtube-playlist-details';
 import { useToast } from '@/hooks/use-toast';
 import { shuffleArray } from '@/lib/utils';
+import { addAlbumBracket } from './actions';
 
 const createBracketFromAlbum = (album: Album): Bracket => {
     const shuffledTracks = shuffleArray([...album.tracks]);
@@ -122,19 +121,42 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
   }, [authLoading, authUser, params.id]);
 
   const handleAddAlbum = async (url: string, source: AlbumSource) => {
-    console.log("SERVER ACTION CALLED");
     setAddAlbumLoading(true);
+    const formData = new FormData();
+    formData.append("url", url);
 
-    // Simulate a successful action for debugging
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setAddAlbumLoading(false);
-    setShowAddAlbumDialog(false);
-    toast({
-        title: "Test Successful!",
-        description: "The action was called without errors. Check the console.",
-    });
-  }
+    try {
+      const response = await addAlbumBracket(formData);
+
+      if (response.success && response.result) {
+        const newBracket = createBracketFromAlbum(response.result);
+        if (groupRef) {
+          await updateDoc(groupRef, {
+            pendingBrackets: arrayUnion(newBracket),
+          });
+        }
+        toast({
+          title: "Bracket Created!",
+          description: `A new bracket for "${response.result.name}" has been added.`,
+        });
+      } else {
+        throw new Error(response.error || "Failed to create bracket.");
+      }
+    } catch (error: any) {
+      console.error("Error adding new album bracket:", error);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description:
+          error.message ||
+          "Could not add the album. Please check the URL and try again.",
+      });
+    } finally {
+      setAddAlbumLoading(false);
+      setShowAddAlbumDialog(false);
+    }
+  };
+
 
   if (loading) {
     return (
