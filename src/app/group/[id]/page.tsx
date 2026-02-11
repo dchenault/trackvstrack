@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { generateRandomNickname } from '@/lib/nickname-generator';
 
 // Temporary mock data for bracket creation until album selection is implemented
 const getMockBracket = (): Bracket => {
@@ -70,6 +72,11 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [nickname, setNickname] = useState('');
+
+  // State for guest users
+  const [guestNickname, setGuestNickname] = useState<string | null>(null);
+  const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
   
   const groupRef = useMemo(() => firestore ? doc(firestore, 'groups', params.id) : null, [firestore, params.id]);
   const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'groups', params.id, 'users')) : null, [firestore, params.id]);
@@ -79,6 +86,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
   const loading = authLoading || groupLoading || usersLoading;
 
+  // Handle authenticated users who are not yet members
   useEffect(() => {
     if (loading || !authUser || !groupData) return;
 
@@ -87,6 +95,20 @@ export default function GroupPage({ params }: { params: { id: string } }) {
         setShowJoinModal(true);
     }
   }, [authUser, usersData, groupData, loading]);
+
+  // Handle unauthenticated (guest) users
+  useEffect(() => {
+    if (!authLoading && !authUser) {
+      const storageKey = `guestNickname_${params.id}`;
+      let storedNickname = localStorage.getItem(storageKey);
+      if (!storedNickname) {
+        storedNickname = generateRandomNickname();
+        localStorage.setItem(storageKey, storedNickname);
+      }
+      setGuestNickname(storedNickname);
+    }
+  }, [authLoading, authUser, params.id]);
+
 
   const handleJoinGroup = async () => {
     if (!nickname.trim() || !firestore || !authUser) return;
@@ -107,6 +129,23 @@ export default function GroupPage({ params }: { params: { id: string } }) {
     const groupDocRef = doc(firestore, 'groups', params.id);
     await setDoc(groupDocRef, { activeBracket: bracketData }, { merge: true });
   }
+
+  const handleChangeNickname = () => {
+    if (guestNickname) {
+      setNewNickname(guestNickname);
+    }
+    setShowNicknameModal(true);
+  };
+
+  const handleUpdateNickname = () => {
+    if (newNickname.trim()) {
+      const storageKey = `guestNickname_${params.id}`;
+      localStorage.setItem(storageKey, newNickname.trim());
+      setGuestNickname(newNickname.trim());
+      setShowNicknameModal(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -138,7 +177,11 @@ export default function GroupPage({ params }: { params: { id: string } }) {
     
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Header group={group} />
+      <Header 
+        group={group} 
+        guestNickname={guestNickname}
+        onChangeNickname={handleChangeNickname}
+      />
       
       <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col items-center gap-12">
         {group.activeBracket && activeMatchup ? (
@@ -156,7 +199,38 @@ export default function GroupPage({ params }: { params: { id: string } }) {
             </>
         )}
       </main>
-
+      
+      {/* Modal for guest to change their nickname */}
+      <Dialog open={showNicknameModal} onOpenChange={setShowNicknameModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Change Your Nickname</DialogTitle>
+            <DialogDescription>
+              Enter a new nickname to be displayed for this group.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="guest-nickname" className="text-right">
+                Nickname
+              </Label>
+              <Input
+                id="guest-nickname"
+                value={newNickname}
+                onChange={(e) => setNewNickname(e.target.value)}
+                className="col-span-3"
+                placeholder="Your new nickname"
+                onKeyDown={(e) => e.key === 'Enter' && handleUpdateNickname()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleUpdateNickname} disabled={!newNickname.trim()}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Modal for authenticated user to join the group */}
       <Dialog open={showJoinModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

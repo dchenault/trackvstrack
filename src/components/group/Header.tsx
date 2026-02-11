@@ -14,7 +14,15 @@ import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import UserProfile from '@/components/auth/UserProfile';
 
-export default function Header({ group }: { group: Group }) {
+export default function Header({ 
+  group,
+  guestNickname,
+  onChangeNickname,
+}: { 
+  group: Group,
+  guestNickname: string | null,
+  onChangeNickname: () => void,
+}) {
   const { toast } = useToast();
   const [shareLink, setShareLink] = useState('');
 
@@ -65,7 +73,10 @@ export default function Header({ group }: { group: Group }) {
                 </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
-            <UserProfile />
+            <UserProfile 
+              guestNickname={guestNickname}
+              onChangeNickname={onChangeNickname}
+            />
         </div>
       </div>
     </header>
