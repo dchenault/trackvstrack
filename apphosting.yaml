@@ -2,12 +2,17 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
   maxInstances: 1
-  # IMPORTANT: Replace placeholder values with your actual API keys.
-  # For better security, use Secret Manager: https://firebase.google.com/docs/app-hosting/configure#secret-manager
-  environmentVariables:
-    GEMINI_API_KEY: 'AIzaSyCBrprPy-5GMcAkw7ITTPqEGNxjgW5KP4M'
-    YOUTUBE_API_KEY: 'AIzaSyCBrprPy-5GMcAkw7ITTPqEGNxjgW5KP4M'
 
+env:
+  - variable: GEMINI_API_KEY
+    value: "AIzaSyCBrprPy-5GMcAkw7ITTPqEGNxjgW5KP4M"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: YOUTUBE_API_KEY
+    value: "AIzaSyCBrprPy-5GMcAkw7ITTPqEGNxjgW5KP4M"
+    availability:
+      - BUILD
+      - RUNTIME
