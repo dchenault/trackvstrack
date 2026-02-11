@@ -26,6 +26,7 @@ import { Loader2, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { generateRandomNickname } from '@/lib/nickname-generator';
 import { getAlbumDetails } from '@/ai/flows/get-album-details';
+import { getYoutubePlaylistDetails } from '@/ai/flows/get-youtube-playlist-details';
 import { useToast } from '@/hooks/use-toast';
 import { shuffleArray } from '@/lib/utils';
 
@@ -127,19 +128,33 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
     try {
         console.log(`Fetching album from ${source} with URL: ${url}`);
         
-        // For now, we only have a flow for Spotify. We can build out the others later.
-        if (source !== 'spotify') {
-            toast({
-                variant: 'default',
-                title: 'Feature Coming Soon!',
-                description: `Importing from ${source} is not yet implemented.`,
-            });
-            setAddAlbumLoading(false);
-            return;
+        let albumDetails: Album;
+
+        switch (source) {
+            case 'spotify':
+                albumDetails = await getAlbumDetails({ url });
+                break;
+            case 'youtube':
+                albumDetails = await getYoutubePlaylistDetails({ url });
+                break;
+            case 'musicbrainz':
+                toast({
+                    variant: 'default',
+                    title: 'Feature Coming Soon!',
+                    description: `Importing from ${source} is not yet implemented.`,
+                });
+                setAddAlbumLoading(false);
+                return;
+            default:
+                 toast({
+                    variant: "destructive",
+                    title: "Invalid source",
+                    description: "The selected source is not supported.",
+                });
+                setAddAlbumLoading(false);
+                return;
         }
 
-        const albumDetails = await getAlbumDetails({ url });
-        
         const trackCount = albumDetails.tracks.length;
         const isPowerOfTwo = trackCount > 0 && (trackCount & (trackCount - 1)) === 0;
 
