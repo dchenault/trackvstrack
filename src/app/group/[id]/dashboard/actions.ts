@@ -18,27 +18,25 @@ async function fetchAlbumData(url: string): Promise<Album> {
 }
 
 export async function addAlbumBracket(formData: FormData) {
-  console.log("SERVER ACTION STARTED");
   try {
     const url = formData.get("url") as string;
-    if (!url) throw new Error("URL is required.");
-    console.log("STEP 1 - Got URL:", url);
+
+    console.log("STEP 1: Got URL");
 
     const result = await fetchAlbumData(url);
-    console.log("STEP 2 - Fetched album data");
 
-    const safeResult = JSON.parse(JSON.stringify(result));
-    console.log("STEP 3 - Serialized result, preparing to return");
+    console.log("STEP 2: fetchAlbumData finished");
 
     return {
       success: true,
-      result: safeResult,
+      result: "TEST_STRING_ONLY"
     };
+
   } catch (error) {
-    console.error("CRASHED HERE:", error);
+    console.error("SERVER CRASH:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown server error",
+      error: error instanceof Error ? error.message : "Unknown error"
     };
   }
 }
