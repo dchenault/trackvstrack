@@ -1,72 +1,95 @@
 'use server';
 /**
- * @fileOverview A flow to retrieve playlist details from a YouTube URL.
+ * @fileOverview A utility to retrieve playlist details from a YouTube URL.
  *
- * - getYoutubePlaylistDetails - A function that simulates scraping a YouTube URL for playlist details.
- * - GetYoutubePlaylistDetailsInput - The input type for the getYoutubePlaylistDetails function.
- * - GetYoutubePlaylistDetailsOutput - The return type for the getYoutubePlaylistDetails function.
+ * - fetchYoutubePlaylistDetails - Fetches metadata and tracks for a given YouTube playlist URL.
  */
-
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import type { Album } from '@/lib/types';
-
-// Define Zod schemas that match the types in src/lib/types.ts
-const TrackSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  trackNumber: z.number(),
-  previewUrl: z.string().nullable(),
-});
-
-const AlbumSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  artist: z.string(),
-  artworkUrl: z.string(),
-  tracks: z.array(TrackSchema),
-});
 
 export const GetYoutubePlaylistDetailsInputSchema = z.object({
   url: z.string().url().describe("The YouTube playlist URL"),
 });
 export type GetYoutubePlaylistDetailsInput = z.infer<typeof GetYoutubePlaylistDetailsInputSchema>;
 
-// The output schema is the Album schema
-export const GetYoutubePlaylistDetailsOutputSchema = AlbumSchema;
-export type GetYoutubePlaylistDetailsOutput = z.infer<typeof GetYoutubePlaylistDetailsOutputSchema>;
+type YoutubePlaylistDetails = {
+    playlistId: string;
+    title: string;
+    image: string;
+    tracks: string[];
+}
 
-// Since I cannot actually call the YouTube API, I will return mock data.
-// The artwork will be a placeholder from picsum.
-const mockPlaylistData: Album = {
-  id: 'youtube-pl-mock-1',
-  name: 'Lo-fi Beats to Study To',
-  artist: 'Various Artists',
-  artworkUrl: 'https://picsum.photos/seed/lofi/400/400',
-  tracks: [
-    { id: 'yt1', name: 'Sunrise Lullaby', trackNumber: 1, previewUrl: null },
-    { id: 'yt2', name: 'Midnight Commute', trackNumber: 2, previewUrl: null },
-    { id: 'yt3', name: 'Rainy Day Reverie', trackNumber: 3, previewUrl: null },
-    { id: 'yt4', name: 'Zenith', trackNumber: 4, previewUrl: null },
-  ],
-};
+function extractPlaylistId(url: string): string | null {
+    const match = url.match(/[?&]list=([^&]+)/);
+    return match ? match[1] : null;
+}
 
+export async function fetchYoutubePlaylistDetails(input: GetYoutubePlaylistDetailsInput): Promise<YoutubePlaylistDetails> {
+    const playlistId = extractPlaylistId(input.url);
 
-const getYoutubePlaylistDetailsFlow = ai.defineFlow(
-  {
-    name: 'getYoutubePlaylistDetailsFlow',
-    inputSchema: GetYoutubePlaylistDetailsInputSchema,
-    outputSchema: GetYoutubePlaylistDetailsOutputSchema,
-  },
-  async (input) => {
-    console.log(`Simulating YouTube API call for URL: ${input.url}`);
-    // In a real implementation, this would involve calling the YouTube Data API.
-    // For now, we return mock data and add a delay to simulate network activity.
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return mockPlaylistData;
-  }
-);
+    if (!playlistId) {
+        throw new Error("Invalid YouTube playlist URL. Could not find a 'list' parameter.");
+    }
+    
+    // 1. Fetch Playlist Metadata
+    const playlistRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${playlistId}&key=${process.env.YOUTUBE_API_KEY}`
+    );
 
-export async function getYoutubePlaylistDetails(input: GetYoutubePlaylistDetailsInput): Promise<GetYoutubePlaylistDetailsOutput> {
-  return await getYoutubePlaylistDetailsFlow(input);
+    if (!playlistRes.ok) {
+      const errorBody = await playlistRes.text();
+      console.error("YouTube API Error (Playlist):", errorBody);
+      throw new Error(`Failed to fetch playlist metadata (status: ${playlistRes.status}).`);
+    }
+
+    const playlistData = await playlistRes.json();
+
+    if (!playlistData.items || playlistData.items.length === 0) {
+      throw new Error("YouTube playlist not found or it is private.");
+    }
+    
+    const playlist = playlistData.items[0];
+    const albumTitle = playlist.snippet.title;
+    const albumArt =
+      playlist.snippet.thumbnails?.maxres?.url ||
+      playlist.snippet.thumbnails?.high?.url ||
+      playlist.snippet.thumbnails?.default?.url ||
+      "";
+
+    // 2. Fetch Playlist Tracks
+    const itemsRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${process.env.YOUTUBE_API_KEY}`
+    );
+
+    if (!itemsRes.ok) {
+       const errorBody = await itemsRes.text();
+       console.error("YouTube API Error (PlaylistItems):", errorBody);
+       throw new Error(`Failed to fetch playlist tracks (status: ${itemsRes.status}).`);
+    }
+
+    const itemsData = await itemsRes.json();
+    const tracks: string[] =
+      itemsData.items
+        ?.map((item: any) => item.snippet?.title)
+        .filter(Boolean) || [];
+
+    if (tracks.length === 0) {
+      throw new Error("No tracks found in the playlist. The playlist might be empty.");
+    }
+
+    if (tracks.length % 2 !== 0 && tracks.length > 1) {
+      // Brackets must have an even number of tracks. Remove the last one.
+      tracks.pop();
+    }
+
+    if (tracks.length < 2) {
+      throw new Error("Playlists must have at least 2 tracks to form a bracket.");
+    }
+
+    // 3. Return safe JSON
+    return {
+        playlistId,
+        title: albumTitle,
+        image: albumArt,
+        tracks: tracks,
+    };
 }

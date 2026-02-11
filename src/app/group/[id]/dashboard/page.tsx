@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, updateDoc, arrayUnion } from 'firebase/firestore';
-import type { Group, User as GroupUser, Bracket, Album } from '@/lib/types';
+import { doc, collection, query } from 'firebase/firestore';
+import type { Group, User as GroupUser } from '@/lib/types';
 import Header from '@/components/group/Header';
 import AddAlbum from '@/components/group/AddAlbum';
 import BracketCard from '@/components/group/BracketCard';
@@ -26,68 +26,8 @@ import { Loader2, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { generateRandomNickname } from '@/lib/nickname-generator';
 import { useToast } from '@/hooks/use-toast';
-import { shuffleArray } from '@/lib/utils';
 import { addAlbumBracket } from './actions';
 
-const createBracketFromAlbum = (album: Album): Bracket => {
-    const shuffledTracks = shuffleArray([...album.tracks]);
-    
-    const getRoundName = (numMatchups: number, roundNum: number): string => {
-        if (numMatchups === 1) return 'Final';
-        if (numMatchups === 2) return 'Semi-Finals';
-        if (numMatchups === 4) return 'Quarter-Finals';
-        if (numMatchups === 8) return 'Round of 16';
-        return `Round ${roundNum}`;
-    }
-
-    const round1Matchups = [];
-    for (let i = 0; i < shuffledTracks.length; i += 2) {
-        round1Matchups.push({
-            id: `m-r1-${i / 2}`,
-            track1: shuffledTracks[i],
-            track2: shuffledTracks[i + 1],
-            winner: null,
-            votes: { track1: 0, track2: 0 },
-        });
-    }
-
-    const rounds = [
-        { id: 'round-1', name: getRoundName(round1Matchups.length, 1), matchups: round1Matchups }
-    ];
-
-    let numMatchupsInPreviousRound = round1Matchups.length;
-    let roundNum = 2;
-    while(numMatchupsInPreviousRound > 1) {
-        const numMatchupsInCurrentRound = numMatchupsInPreviousRound / 2;
-        const currentRoundMatchups = [];
-        for (let i=0; i<numMatchupsInCurrentRound; i++) {
-            currentRoundMatchups.push({
-                id: `m-r${roundNum}-${i}`,
-                track1: null,
-                track2: null,
-                winner: null,
-                votes: { track1: 0, track2: 0 },
-            });
-        }
-        rounds.push({
-            id: `round-${roundNum}`,
-            name: getRoundName(numMatchupsInCurrentRound, roundNum),
-            matchups: currentRoundMatchups,
-        });
-        numMatchupsInPreviousRound = numMatchupsInCurrentRound;
-        roundNum++;
-    }
-
-    return {
-        id: `bracket-${album.id}-${Math.random().toString(36).substring(2, 9)}`,
-        album,
-        rounds,
-        status: 'pending',
-        winner: null,
-    };
-}
-
-type AlbumSource = 'spotify' | 'youtube' | 'musicbrainz';
 
 export default function GroupDashboardPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -124,26 +64,19 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
     }
   }, [authLoading, authUser, params.id]);
 
-  const handleAddAlbum = async (url: string, source: AlbumSource) => {
+  const handleAddAlbum = async (url: string) => {
     setAddAlbumLoading(true);
     const formData = new FormData();
     formData.append("url", url);
+    formData.append("groupId", params.id);
 
     try {
       const response = await addAlbumBracket(formData);
 
-      if (response.success && response.result) {
-        // The server action returns "TEST_STRING_ONLY" which is not a valid Album object.
-        // This will cause createBracketFromAlbum to fail. The catch block will handle it.
-        const newBracket = createBracketFromAlbum(response.result as any);
-        if (groupRef) {
-          await updateDoc(groupRef, {
-            pendingBrackets: arrayUnion(newBracket),
-          });
-        }
+      if (response.success) {
         toast({
           title: "Bracket Created!",
-          description: `A new bracket for "${(response.result as any).name}" has been added.`,
+          description: `A new bracket has been added to your upcoming list.`,
         });
       } else {
         throw new Error(response.error || "Failed to create bracket.");
@@ -258,7 +191,7 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
           <DialogHeader>
             <DialogTitle>Start a New Bracket</DialogTitle>
             <DialogDescription>
-              Paste an album URL from Spotify, YouTube, or MusicBrainz to generate a new tournament bracket.
+              Paste a YouTube playlist URL to generate a new tournament bracket.
             </DialogDescription>
           </DialogHeader>
           <AddAlbum onAlbumAdd={handleAddAlbum} loading={addAlbumLoading} />
