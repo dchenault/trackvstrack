@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Radio } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -24,13 +24,13 @@ export default function Home() {
 
       {loading ? (
         <Button size="lg" className="font-bold group text-xl p-8" disabled>
-          <Radio className="mr-4 h-8 w-8 animate-spin" />
+          <Play className="mr-4 h-8 w-8 animate-spin" />
            Loading...
         </Button>
       ) : (
         <Button asChild size="lg" className="font-bold group text-xl p-8">
             <Link href={playUrl}>
-            <Radio className="mr-4 h-8 w-8" />
+            <Play className="mr-4 h-8 w-8" />
             Play Album
             </Link>
         </Button>
