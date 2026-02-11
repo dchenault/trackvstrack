@@ -17,3 +17,32 @@ export function shuffleArray<T>(array: T[]): T[] {
   }
   return array;
 }
+
+/**
+ * Recursively serializes Firestore data, converting Timestamps to ISO strings.
+ * @param data The data to serialize.
+ * @returns The serialized data.
+ */
+export function serializeFirestoreData(data: any): any {
+  if (data === null || data === undefined) return data;
+
+  if (typeof data !== "object") return data;
+
+  if (Array.isArray(data)) {
+    return data.map(serializeFirestoreData);
+  }
+
+  // Convert Firestore Timestamp to ISO string
+  if (data.toDate && typeof data.toDate === "function") {
+    return data.toDate().toISOString();
+  }
+
+  const serialized: any = {};
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      serialized[key] = serializeFirestoreData(data[key]);
+    }
+  }
+
+  return serialized;
+}

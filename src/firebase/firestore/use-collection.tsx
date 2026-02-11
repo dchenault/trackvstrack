@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { onSnapshot, Query, DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
+import { serializeFirestoreData } from '@/lib/utils';
 
 export function useCollection<T>(query: Query<DocumentData> | null) {
     const [data, setData] = useState<T[]>([]);
@@ -20,7 +21,7 @@ export function useCollection<T>(query: Query<DocumentData> | null) {
         const unsubscribe = onSnapshot(query, 
             (querySnapshot) => {
                 const collectionData = querySnapshot.docs.map(doc => (
-                    { id: doc.id, ...doc.data() }
+                    serializeFirestoreData({ id: doc.id, ...doc.data() })
                 )) as T[];
                 setData(collectionData);
                 setLoading(false);

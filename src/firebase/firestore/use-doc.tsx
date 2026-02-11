@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { onSnapshot, DocumentReference, DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
+import { serializeFirestoreData } from '@/lib/utils';
 
 export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
     const [data, setData] = useState<T | null>(null);
@@ -20,7 +21,8 @@ export function useDoc<T>(ref: DocumentReference<DocumentData> | null) {
         const unsubscribe = onSnapshot(ref, 
             (docSnap) => {
                 if (docSnap.exists()) {
-                    setData({ id: docSnap.id, ...docSnap.data() } as T);
+                    const docData = { id: docSnap.id, ...docSnap.data() };
+                    setData(serializeFirestoreData(docData) as T);
                 } else {
                     setData(null);
                 }

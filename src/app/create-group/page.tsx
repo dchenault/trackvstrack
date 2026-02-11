@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore } from '@/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -77,7 +77,7 @@ export default function CreateGroupPage() {
             await setDoc(groupRef, {
                 name: groupName.trim(),
                 ownerId: user.uid,
-                createdAt: serverTimestamp(),
+                createdAt: new Date().toISOString(),
                 activeBracket: null,
                 pendingBrackets: [],
                 archivedBrackets: []
