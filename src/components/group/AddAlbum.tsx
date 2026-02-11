@@ -1,15 +1,25 @@
 "use client"
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SpotifyIcon } from '@/components/icons/spotify';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
-export default function AddAlbum({ onAlbumAdd }: { onAlbumAdd: () => void }) {
+export default function AddAlbum({ 
+    onAlbumAdd,
+    loading 
+}: { 
+    onAlbumAdd: (url: string) => void,
+    loading: boolean
+}) {
+  const [url, setUrl] = useState('');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAlbumAdd();
+    if (!url) return;
+    onAlbumAdd(url);
   };
 
   return (
@@ -20,18 +30,31 @@ export default function AddAlbum({ onAlbumAdd }: { onAlbumAdd: () => void }) {
           Start a New Bracket
         </CardTitle>
         <CardDescription>
-          Paste a Spotify album URL to generate a new tournament bracket.
+          Paste a Spotify album URL to generate a new tournament bracket. I'll fetch the album art and tracklist for you.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="album-url">Spotify Album URL</Label>
-            <Input id="album-url" placeholder="https://open.spotify.com/album/..." className="bg-background" />
+            <Input 
+                id="album-url" 
+                placeholder="https://open.spotify.com/album/..." 
+                className="bg-background"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                disabled={loading}
+            />
           </div>
-          <Button type="submit" className="w-full font-bold group">
-            Generate Bracket
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+          <Button type="submit" className="w-full font-bold group" disabled={loading || !url}>
+            {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+                <>
+                    Generate Bracket
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </>
+            )}
           </Button>
         </form>
       </CardContent>

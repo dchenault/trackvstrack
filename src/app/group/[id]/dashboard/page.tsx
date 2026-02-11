@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collection, query, updateDoc, arrayUnion } from 'firebase/firestore';
-import type { Group, User as GroupUser, Bracket } from '@/lib/types';
+import type { Group, User as GroupUser, Bracket, Album } from '@/lib/types';
 import Header from '@/components/group/Header';
 import AddAlbum from '@/components/group/AddAlbum';
 import BracketCard from '@/components/group/BracketCard';
@@ -22,60 +22,79 @@ import { Button } from '@/components/ui/button';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { generateRandomNickname } from '@/lib/nickname-generator';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { getAlbumDetails } from '@/ai/flows/get-album-details';
+import { useToast } from '@/hooks/use-toast';
+import { shuffleArray } from '@/lib/utils';
 
-// Temporary mock data for bracket creation until album selection is implemented
-const getMockBracket = (): Bracket => {
-    const seed = Math.floor(Math.random() * 1000);
-    const albumArt = PlaceHolderImages.find(img => img.id === 'album-2-art')?.imageUrl ?? `https://picsum.photos/seed/${300 + seed}/500/500`;
-    const albumId = `album-${Date.now()}-${seed}`;
+const createBracketFromAlbum = (album: Album): Bracket => {
+    const shuffledTracks = shuffleArray([...album.tracks]);
+    
+    const getRoundName = (numMatchups: number, roundNum: number): string => {
+        if (numMatchups === 1) return 'Final';
+        if (numMatchups === 2) return 'Semi-Finals';
+        if (numMatchups === 4) return 'Quarter-Finals';
+        if (numMatchups === 8) return 'Round of 16';
+        return `Round ${roundNum}`;
+    }
 
-    const albumTracks = [
-        { id: 't1', name: 'Metro Pulse', trackNumber: 1, previewUrl: null },
-        { id: 't2', name: 'Rooftop Gardens', trackNumber: 2, previewUrl: null },
-        { id: 't3', name: 'Alleyway Echoes', trackNumber: 3, previewUrl: null },
-        { id: 't4', name: 'Glass Towers', trackNumber: 4, previewUrl: null },
-        { id: 't5', name: 'Subway Rattle', trackNumber: 5, previewUrl: null },
-        { id: 't6', name: 'Concrete Jungle', trackNumber: 6, previewUrl: null },
-        { id: 't7', name: 'Pigeon Flight', trackNumber: 7, previewUrl: null },
-        { id: 't8', name: 'Streetlight Serenade', trackNumber: 8, previewUrl: null },
-    ];
-    const album = {
-        id: albumId,
-        name: 'City Lights',
-        artist: 'Urban Explorer',
-        artworkUrl: albumArt,
-        tracks: albumTracks,
-    };
     const round1Matchups = [];
-    for (let i = 0; i < album.tracks.length; i += 2) {
+    for (let i = 0; i < shuffledTracks.length; i += 2) {
         round1Matchups.push({
-        id: `m-r1-${i/2}`,
-        track1: album.tracks[i],
-        track2: album.tracks[i+1],
-        winner: null,
-        votes: { track1: 0, track2: 0 },
+            id: `m-r1-${i / 2}`,
+            track1: shuffledTracks[i],
+            track2: shuffledTracks[i + 1],
+            winner: null,
+            votes: { track1: 0, track2: 0 },
         });
     }
+
+    const rounds = [
+        { id: 'round-1', name: getRoundName(round1Matchups.length, 1), matchups: round1Matchups }
+    ];
+
+    let numMatchupsInPreviousRound = round1Matchups.length;
+    let roundNum = 2;
+    while(numMatchupsInPreviousRound > 1) {
+        const numMatchupsInCurrentRound = numMatchupsInPreviousRound / 2;
+        const currentRoundMatchups = [];
+        for (let i=0; i<numMatchupsInCurrentRound; i++) {
+            currentRoundMatchups.push({
+                id: `m-r${roundNum}-${i}`,
+                track1: null,
+                track2: null,
+                winner: null,
+                votes: { track1: 0, track2: 0 },
+            });
+        }
+        rounds.push({
+            id: `round-${roundNum}`,
+            name: getRoundName(numMatchupsInCurrentRound, roundNum),
+            matchups: currentRoundMatchups,
+        });
+        numMatchupsInPreviousRound = numMatchupsInCurrentRound;
+        roundNum++;
+    }
+
     return {
-        id: `bracket-${album.id}`,
+        id: `bracket-${album.id}-${Math.random().toString(36).substring(2, 9)}`,
         album,
-        rounds: [{ id: 'round-1', name: 'Quarter Finals', matchups: round1Matchups }, { id: 'round-2', name: 'Semi Finals', matchups: [{ id: 'm-r2-1', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }, { id: 'm-r2-2', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }] }, { id: 'round-3', name: 'Final', matchups: [{ id: 'm-r3-1', track1: null, track2: null, winner: null, votes: { track1: 0, track2: 0 } }] }],
+        rounds,
         status: 'pending',
         winner: null,
     };
-};
+}
 
 
 export default function GroupDashboardPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const firestore = useFirestore();
   const { user: authUser, loading: authLoading } = useUser();
+  const { toast } = useToast();
 
-  // State for guest users
   const [guestNickname, setGuestNickname] = useState<string | null>(null);
 
   const [showAddAlbumDialog, setShowAddAlbumDialog] = useState(false);
+  const [addAlbumLoading, setAddAlbumLoading] = useState(false);
   
   const groupRef = useMemo(() => firestore ? doc(firestore, 'groups', params.id) : null, [firestore, params.id]);
   const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'groups', params.id, 'users')) : null, [firestore, params.id]);
@@ -85,7 +104,6 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
 
   const loading = authLoading || groupLoading || usersLoading;
 
-  // Handle unauthenticated (guest) users
   useEffect(() => {
     if (!authLoading && !authUser) {
       const storageKey = `guestNickname_${params.id}`;
@@ -98,14 +116,49 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
     }
   }, [authLoading, authUser, params.id]);
 
-  const handleAddAlbum = async () => {
+  const handleAddAlbum = async (url: string) => {
     if (!firestore || !groupData) return;
-    const newBracket = getMockBracket();
-    const groupDocRef = doc(firestore, 'groups', params.id);
-    await updateDoc(groupDocRef, {
-        pendingBrackets: arrayUnion(newBracket)
-    });
-    setShowAddAlbumDialog(false);
+    setAddAlbumLoading(true);
+
+    try {
+        const albumDetails = await getAlbumDetails({ url });
+        
+        const trackCount = albumDetails.tracks.length;
+        const isPowerOfTwo = trackCount > 0 && (trackCount & (trackCount - 1)) === 0;
+
+        if (!isPowerOfTwo) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Album for Bracket',
+                description: `Albums with ${trackCount} tracks are not supported yet. Please choose an album with a number of tracks that is a power of two (e.g., 4, 8, 16).`,
+            });
+            setAddAlbumLoading(false);
+            return;
+        }
+
+        const newBracket = createBracketFromAlbum(albumDetails);
+        const groupDocRef = doc(firestore, 'groups', params.id);
+        
+        await updateDoc(groupDocRef, {
+            pendingBrackets: arrayUnion(newBracket)
+        });
+
+        toast({
+            title: 'Album Added!',
+            description: `The bracket for "${albumDetails.name}" is ready.`,
+        });
+
+        setShowAddAlbumDialog(false);
+    } catch(error) {
+        console.error("Error adding new album bracket:", error);
+        toast({
+            variant: "destructive",
+            title: "Uh oh! Something went wrong.",
+            description: "Could not generate the bracket. Please try again.",
+        });
+    } finally {
+        setAddAlbumLoading(false);
+    }
   }
 
   if (loading) {
@@ -139,7 +192,6 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
     
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* We pass a dummy function for onChangeNickname as it's not needed here */}
       <Header 
         group={group} 
         guestNickname={guestNickname}
@@ -201,7 +253,7 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
       
       <Dialog open={showAddAlbumDialog} onOpenChange={setShowAddAlbumDialog}>
         <DialogContent>
-            <AddAlbum onAlbumAdd={handleAddAlbum} />
+            <AddAlbum onAlbumAdd={handleAddAlbum} loading={addAlbumLoading} />
         </DialogContent>
       </Dialog>
     </div>
