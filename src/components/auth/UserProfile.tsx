@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/firebase';
@@ -13,16 +14,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import SignOutButton from './SignOutButton';
 import { ChevronsUpDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function UserProfile() {
     const { user, loading } = useUser();
 
     if (loading) {
-        return <Skeleton className="h-10 w-48" />;
+        return <Skeleton className="h-10 w-24" />;
     }
 
     if (!user) {
-        return null;
+        return (
+            <Button asChild variant="outline">
+                <Link href="/login">Login</Link>
+            </Button>
+        );
     }
 
     return (

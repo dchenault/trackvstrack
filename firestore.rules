@@ -9,8 +9,10 @@ service cloud.firestore {
     }
 
     match /groups/{groupId} {
-      // Signed-in users can read and list groups.
-      allow get, list: if isSignedIn();
+      // Any user can read a group's public data.
+      allow get: if true;
+      // Signed-in users can list groups.
+      allow list: if isSignedIn();
 
       // A user can create a group if they are signed in and are the owner.
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
