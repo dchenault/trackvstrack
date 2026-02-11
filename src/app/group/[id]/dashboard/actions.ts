@@ -1,46 +1,48 @@
 'use server';
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { firebaseConfig } from '@/firebase/config';
-import { fetchYoutubePlaylistDetails } from '@/ai/flows/get-youtube-playlist-details';
-
-// Initialize Firebase if not already initialized for server-side usage.
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const firestore = getFirestore(app);
-
 export async function addAlbumBracket(formData: FormData) {
-  const url = formData.get("url") as string;
-  const groupId = formData.get("groupId") as string;
-
   try {
-    console.log("STEP 1 - Calling fetchYoutubePlaylistDetails with URL:", url);
-    const playlistData = await fetchYoutubePlaylistDetails({ url });
-    console.log("STEP 2 - Fetched playlist data:", playlistData);
+    const url = formData.get("url")?.toString();
 
-    // Create a simplified, serializable object for Firestore
-    const bracketData = {
-      id: `bracket-yt-${playlistData.playlistId}-${Date.now()}`,
-      title: playlistData.title,
-      image: playlistData.image,
-      tracks: playlistData.tracks,
-      status: 'pending',
-    };
+    console.log("URL RECEIVED:", url);
+    console.log("YOUTUBE API KEY EXISTS:", !!process.env.YOUTUBE_API_KEY);
 
-    console.log("STEP 3 - Saving simplified bracket to Firestore for group:", groupId);
-    const groupRef = doc(firestore, 'groups', groupId);
-    await updateDoc(groupRef, {
-        pendingBrackets: arrayUnion(bracketData),
-    });
-    console.log("STEP 4 - Bracket saved successfully");
+    if (!url) {
+      return { success: false, error: "No URL provided" };
+    }
+
+    const playlistIdMatch = url.match(/[?&]list=([^&]+)/);
+    const playlistId = playlistIdMatch ? playlistIdMatch[1] : null;
+
+    if (!playlistId) {
+      return { success: false, error: "Invalid playlist URL" };
+    }
+
+    const apiKey = process.env.YOUTUBE_API_KEY;
+
+    if (!apiKey) {
+      return { success: false, error: "Missing YOUTUBE_API_KEY" };
+    }
+
+    const playlistRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${playlistId}&key=${apiKey}`
+    );
+
+    const playlistText = await playlistRes.text();
+
+    console.log("PLAYLIST RESPONSE:", playlistText);
+
+    if (!playlistRes.ok) {
+      return { success: false, error: "YouTube API error" };
+    }
 
     return { success: true };
+  } catch (err: any) {
+    console.error("SERVER ACTION CRASH:", err);
 
-  } catch (error) {
-    console.error("YOUTUBE IMPORT ERROR:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown server error",
+      error: err?.message || "Unknown server error",
     };
   }
 }
