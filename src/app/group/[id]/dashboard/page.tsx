@@ -17,6 +17,9 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, PlusCircle } from 'lucide-react';
@@ -25,6 +28,7 @@ import { generateRandomNickname } from '@/lib/nickname-generator';
 import { getAlbumDetails } from '@/ai/flows/get-album-details';
 import { useToast } from '@/hooks/use-toast';
 import { shuffleArray } from '@/lib/utils';
+import { SpotifyIcon } from '@/components/icons/spotify';
 
 const createBracketFromAlbum = (album: Album): Bracket => {
     const shuffledTracks = shuffleArray([...album.tracks]);
@@ -253,7 +257,16 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
       
       <Dialog open={showAddAlbumDialog} onOpenChange={setShowAddAlbumDialog}>
         <DialogContent>
-            <AddAlbum onAlbumAdd={handleAddAlbum} loading={addAlbumLoading} />
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SpotifyIcon className="w-6 h-6 text-green-500" />
+              Start a New Bracket
+            </DialogTitle>
+            <DialogDescription>
+              Paste a Spotify album URL to generate a new tournament bracket. I'll fetch the album art and tracklist for you.
+            </DialogDescription>
+          </DialogHeader>
+          <AddAlbum onAlbumAdd={handleAddAlbum} loading={addAlbumLoading} />
         </DialogContent>
       </Dialog>
     </div>
