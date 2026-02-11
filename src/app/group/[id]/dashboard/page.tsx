@@ -122,75 +122,18 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
   }, [authLoading, authUser, params.id]);
 
   const handleAddAlbum = async (url: string, source: AlbumSource) => {
-    if (!firestore || !groupData) return;
+    console.log("SERVER ACTION CALLED");
     setAddAlbumLoading(true);
 
-    try {
-        console.log(`Fetching album from ${source} with URL: ${url}`);
-        
-        let albumDetails: Album;
-
-        switch (source) {
-            case 'spotify':
-                albumDetails = await getAlbumDetails({ url });
-                break;
-            case 'youtube':
-                albumDetails = await getYoutubePlaylistDetails({ url });
-                break;
-            case 'musicbrainz':
-                toast({
-                    variant: 'default',
-                    title: 'Feature Coming Soon!',
-                    description: `Importing from ${source} is not yet implemented.`,
-                });
-                setAddAlbumLoading(false);
-                return;
-            default:
-                 toast({
-                    variant: "destructive",
-                    title: "Invalid source",
-                    description: "The selected source is not supported.",
-                });
-                setAddAlbumLoading(false);
-                return;
-        }
-
-        const trackCount = albumDetails.tracks.length;
-        const isPowerOfTwo = trackCount > 0 && (trackCount & (trackCount - 1)) === 0;
-
-        if (!isPowerOfTwo) {
-            toast({
-                variant: 'destructive',
-                title: 'Invalid Album for Bracket',
-                description: `Albums with ${trackCount} tracks are not supported yet. Please choose an album with a number of tracks that is a power of two (e.g., 4, 8, 16).`,
-            });
-            setAddAlbumLoading(false);
-            return;
-        }
-
-        const newBracket = createBracketFromAlbum(albumDetails);
-        const groupDocRef = doc(firestore, 'groups', params.id);
-        
-        await updateDoc(groupDocRef, {
-            pendingBrackets: arrayUnion(newBracket)
-        });
-
-        toast({
-            title: 'Album Added!',
-            description: `The bracket for "${albumDetails.name}" is ready.`,
-        });
-
-        setShowAddAlbumDialog(false);
-    } catch(error) {
-        console.error("Error adding new album bracket:", error);
-        toast({
-            variant: "destructive",
-            title: "Uh oh! Something went wrong.",
-            description: "Could not generate the bracket. Please try again.",
-        });
-    } finally {
-        setAddAlbumLoading(false);
-    }
+    // Simulate a successful action for debugging
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setAddAlbumLoading(false);
+    setShowAddAlbumDialog(false);
+    toast({
+        title: "Test Successful!",
+        description: "The action was called without errors. Check the console.",
+    });
   }
 
   if (loading) {
