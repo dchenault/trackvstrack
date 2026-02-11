@@ -1,0 +1,35 @@
+mutation CreateAlbumShowdown($name: String!, $description: String!, $inviteCode: String!) @auth(level: USER) {
+  albumShowdown_insert(data: {
+    name: $name,
+    description: $description,
+    inviteCode: $inviteCode,
+    creatorId_expr: "auth.uid",
+    status: "active"
+  })
+}
+
+query ListActiveAlbumShowdowns @auth(level: USER) {
+  albumShowdowns(where: { status: { eq: "active" } }) {
+    id
+    name
+    description
+    inviteCode
+    createdAt
+  }
+}
+
+mutation CastVote($matchupId: UUID!, $winnerId: UUID!) @auth(level: USER) {
+  matchup_update(
+    key: { id: $matchupId },
+    data: { winnerId: $winnerId }
+  )
+}
+
+query GetAlbum @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+    albums {
+        id
+        title
+        artist
+        artworkUrl
+    }
+}

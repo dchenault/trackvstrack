@@ -6,8 +6,8 @@ import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collection, query, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { Group, User as GroupUser, Bracket } from '@/lib/types';
 import Header from '@/components/group/Header';
-import BracketVisualizer from '@/components/group/BracketVisualizer';
 import AddAlbum from '@/components/group/AddAlbum';
+import BracketCard from '@/components/group/BracketCard';
 import {
   Accordion,
   AccordionContent,
@@ -17,9 +17,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, PlusCircle } from 'lucide-react';
@@ -166,8 +163,8 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
                 <AccordionContent className="p-4 bg-card rounded-b-lg">
                 {group.activeBracket ? (
                     <div className="border-t pt-4">
-                        <Link href={`/group/${group.id}`}>
-                            <BracketVisualizer bracket={group.activeBracket} />
+                        <Link href={`/group/${group.id}`} className="max-w-sm mx-auto block">
+                            <BracketCard bracket={group.activeBracket} />
                         </Link>
                     </div>
                  ) : <p className="text-muted-foreground text-center py-4">There is no active bracket.</p>}
@@ -178,9 +175,9 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
                 <AccordionTrigger className="text-xl font-bold tracking-wider uppercase p-4 bg-card rounded-t-lg hover:no-underline">Upcoming Brackets ({group.pendingBrackets.length})</AccordionTrigger>
                 <AccordionContent className="p-4 bg-card rounded-b-lg">
                 {group.pendingBrackets.length > 0 ? (
-                    <div className="space-y-8 border-t pt-4">
+                    <div className="border-t pt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {group.pendingBrackets.map(bracket => (
-                            <BracketVisualizer key={bracket.id} bracket={bracket} />
+                            <BracketCard key={bracket.id} bracket={bracket} />
                         ))}
                     </div>
                 ) : <p className="text-muted-foreground text-center py-4">No upcoming brackets have been added.</p>}
@@ -191,9 +188,9 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
                 <AccordionTrigger className="text-xl font-bold tracking-wider uppercase p-4 bg-card rounded-t-lg hover:no-underline">Completed Brackets ({group.archivedBrackets.length})</AccordionTrigger>
                 <AccordionContent className="p-4 bg-card rounded-b-lg">
                 {group.archivedBrackets.length > 0 ? (
-                     <div className="space-y-8 border-t pt-4">
+                     <div className="border-t pt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {group.archivedBrackets.map(bracket => (
-                            <BracketVisualizer key={bracket.id} bracket={bracket} />
+                            <BracketCard key={bracket.id} bracket={bracket} />
                         ))}
                     </div>
                 ): <p className="text-muted-foreground text-center py-4">No brackets have been completed yet.</p>}

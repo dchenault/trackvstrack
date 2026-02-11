@@ -1,0 +1,47 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+}
+
+type AlbumShowdown @table {
+  creator: User
+  name: String!
+  createdAt: Timestamp!
+  status: String!
+  description: String
+  inviteCode: String
+}
+
+type Album @table {
+  title: String!
+  artist: String!
+  createdAt: Timestamp!
+  releaseYear: Int
+  artworkUrl: String
+  spotifyUrl: String
+  appleMusicUrl: String
+}
+
+type ShowdownAlbum @table(key: ["albumShowdown", "album"]) {
+  albumShowdown: AlbumShowdown!
+  album: Album!
+  seed: Int!
+  createdAt: Timestamp!
+  customName: String
+  customArtist: String
+}
+
+type Matchup @table {
+  albumShowdown: AlbumShowdown!
+  roundNumber: Int!
+  matchupNumber: Int!
+  status: String!
+  createdAt: Timestamp!
+  album1: Album # References Album, not ShowdownAlbum
+  album2: Album # References Album, not ShowdownAlbum
+  winner: Album # References Album, not ShowdownAlbum
+  votesForAlbum1: Int
+  votesForAlbum2: Int
+}
