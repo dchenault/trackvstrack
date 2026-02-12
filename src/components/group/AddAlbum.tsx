@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowRight, Loader2 } from 'lucide-react';
-import { YoutubeIcon } from '@/components/icons/youtube';
+import { SpotifyIcon } from '@/components/icons/spotify';
 
 export default function AddAlbum({ 
     onAlbumAdd,
@@ -21,17 +21,17 @@ export default function AddAlbum({
     onAlbumAdd(url);
   };
   
-  const placeholder = 'https://www.youtube.com/playlist?list=...';
+  const placeholder = 'https://open.spotify.com/album/...';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
         <div className="space-y-2">
-            <Label htmlFor="album-url-youtube" className="flex items-center gap-2">
-                <YoutubeIcon className="w-5 h-5 text-red-500"/>
-                YouTube Playlist URL
+            <Label htmlFor="album-url-spotify" className="flex items-center gap-2">
+                <SpotifyIcon className="w-5 h-5 text-green-500"/>
+                Spotify Album URL
             </Label>
             <Input 
-                id="album-url-youtube" 
+                id="album-url-spotify" 
                 placeholder={placeholder}
                 className="bg-background"
                 value={url}

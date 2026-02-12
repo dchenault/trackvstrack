@@ -28,5 +28,16 @@ service cloud.firestore {
         allow write: if isSignedIn() && request.auth.uid == userId;
       }
     }
+
+    match /spotify_tokens/{userId} {
+      // Users can only manage their own Spotify tokens.
+      allow read, write, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /spotify_auth_states/{stateId} {
+        // Only backend services using the Admin SDK can access auth states.
+        // Client access is denied.
+        allow read, write: if false;
+    }
   }
 }

@@ -24,12 +24,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Link as LinkIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { generateRandomNickname } from '@/lib/nickname-generator';
 import { useToast } from '@/hooks/use-toast';
-import { addAlbumBracket } from './actions';
-
+import { addAlbumBracket, getSpotifyRedirectUrl } from './actions';
+import { SpotifyIcon } from '@/components/icons/spotify';
 
 export default function GroupDashboardPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -44,17 +44,16 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
   
   const groupRef = useMemo(() => firestore ? doc(firestore, 'groups', params.id) : null, [firestore, params.id]);
   const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'groups', params.id, 'users')) : null, [firestore, params.id]);
+  
+  // Check for Spotify connection
+  const spotifyTokensRef = useMemo(() => (firestore && authUser) ? doc(firestore, 'spotify_tokens', authUser.uid) : null, [firestore, authUser]);
+  const { data: spotifyTokens, loading: spotifyLoading } = useDoc(spotifyTokensRef);
+  const isSpotifyConnected = !!spotifyTokens;
 
   const { data: groupData, loading: groupLoading } = useDoc<Omit<Group, 'users'>>(groupRef);
   const { data: usersData, loading: usersLoading } = useCollection<GroupUser>(usersQuery);
 
-  const loading = authLoading || groupLoading || usersLoading;
-
-  useEffect(() => {
-    if (groupData) {
-      console.log("DASHBOARD DATA:", JSON.stringify(groupData, null, 2));
-    }
-  }, [groupData]);
+  const loading = authLoading || groupLoading || usersLoading || spotifyLoading;
 
   useEffect(() => {
     if (!authLoading && !authUser) {
@@ -68,11 +67,26 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
     }
   }, [authLoading, authUser, params.id]);
 
+  const handleConnectSpotify = async () => {
+    if (!authUser || !groupData) return;
+    const res = await getSpotifyRedirectUrl(params.id, groupData.ownerId);
+    if (res.success && res.url) {
+      window.location.assign(res.url);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Spotify Connection Failed",
+        description: res.error || "Could not generate a connection URL. Please try again.",
+      });
+    }
+  };
+
   const handleAddAlbum = async (url: string) => {
     setAddAlbumLoading(true);
     const formData = new FormData();
     formData.append("url", url);
     formData.append("groupId", params.id);
+    formData.append("ownerId", groupData?.ownerId || '');
 
     try {
       const response = await addAlbumBracket(formData);
@@ -129,7 +143,6 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
 
   const isOwner = authUser?.uid === group.ownerId;
   const safePendingBrackets = Array.isArray(group.pendingBrackets) ? group.pendingBrackets : [];
-  console.log("SAFE PENDING BRACKETS TO RENDER:", JSON.stringify(safePendingBrackets));
     
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -143,10 +156,17 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
         <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-black tracking-wider uppercase">Dashboard</h2>
             {isOwner && (
+              isSpotifyConnected ? (
                  <Button onClick={() => setShowAddAlbumDialog(true)}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Play New Album
                 </Button>
+              ) : (
+                <Button onClick={handleConnectSpotify}>
+                  <SpotifyIcon className="mr-2 h-5 w-5" />
+                  Connect Spotify to Add Albums
+                </Button>
+              )
             )}
         </div>
 
@@ -212,7 +232,7 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
           <DialogHeader>
             <DialogTitle>Start a New Bracket</DialogTitle>
             <DialogDescription>
-              Paste a YouTube playlist URL to generate a new tournament bracket.
+              Paste a Spotify album URL to generate a new tournament bracket.
             </DialogDescription>
           </DialogHeader>
           <AddAlbum onAlbumAdd={handleAddAlbum} loading={addAlbumLoading} />

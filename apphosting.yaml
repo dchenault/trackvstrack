@@ -11,8 +11,19 @@ env:
       - BUILD
       - RUNTIME
 
-  - variable: YOUTUBE_API_KEY
-    value: "AIzaSyCBrprPy-5GMcAkw7ITTPqEGNxjgW5KP4M"
+  - variable: SPOTIFY_CLIENT_ID
+    value: "" # Set this in the Google Cloud console
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: SPOTIFY_CLIENT_SECRET
+    value: "" # Set this as a secret in the Google Cloud console
+    availability:
+      - RUNTIME
+  
+  - variable: NEXT_PUBLIC_URL
+    value: "" # This will be populated by App Hosting
     availability:
       - BUILD
       - RUNTIME
