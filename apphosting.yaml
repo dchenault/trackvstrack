@@ -12,18 +12,18 @@ env:
       - RUNTIME
 
   - variable: SPOTIFY_CLIENT_ID
-    value: "" # Set this in the Google Cloud console
+    value: "617d4fdbc505490ba24569e0f524b892" # Set this in the Google Cloud console
     availability:
       - BUILD
       - RUNTIME
 
   - variable: SPOTIFY_CLIENT_SECRET
-    value: "" # Set this as a secret in the Google Cloud console
+    value: "006bf7181f3e48fdb01d0682a62c6e05" # Set this as a secret in the Google Cloud console
     availability:
       - RUNTIME
   
   - variable: NEXT_PUBLIC_URL
-    value: "" # This will be populated by App Hosting
+    value: "https://studio--studio-7633580652-c2695.us-central1.hosted.app/" # This will be populated by App Hosting
     availability:
       - BUILD
       - RUNTIME
