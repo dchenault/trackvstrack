@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -5,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collection, query } from 'firebase/firestore';
-import type { Group, User as GroupUser } from '@/lib/types';
+import type { Group, User as GroupUser, Bracket } from '@/lib/types';
 import Header from '@/components/group/Header';
 import AddAlbum from '@/components/group/AddAlbum';
 import BracketCard from '@/components/group/BracketCard';
@@ -69,6 +70,15 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
 
   const handleConnectSpotify = async () => {
     if (!authUser || !groupData) return;
+    // The owner of the group is the one who needs to connect their Spotify
+    if (authUser.uid !== groupData.ownerId) {
+        toast({
+            variant: "destructive",
+            title: "Only the group owner can connect Spotify.",
+            description: "Please ask the group owner to connect their Spotify account to add albums."
+        });
+        return;
+    }
     const res = await getSpotifyRedirectUrl(params.id, groupData.ownerId);
     if (res.success && res.url) {
       window.location.assign(res.url);
@@ -82,11 +92,12 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
   };
 
   const handleAddAlbum = async (url: string) => {
+    if (!groupData) return;
     setAddAlbumLoading(true);
     const formData = new FormData();
     formData.append("url", url);
     formData.append("groupId", params.id);
-    formData.append("ownerId", groupData?.ownerId || '');
+    formData.append("ownerId", groupData.ownerId);
 
     try {
       const response = await addAlbumBracket(formData);
@@ -189,23 +200,10 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
                 <AccordionContent className="p-4 bg-card rounded-b-lg">
                 {safePendingBrackets.length > 0 ? (
                     <div className="border-t pt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                        {safePendingBrackets.map((bracket: any, index: number) => (
-                           <Card key={bracket?.id || index} className="overflow-hidden transition-shadow hover:shadow-lg group border-none">
-                                <div className="relative aspect-square">
-                                    <Image
-                                        src={bracket?.album?.artworkUrl || "https://picsum.photos/seed/placeholder/400/400"}
-                                        alt={`Album art for ${bracket?.album?.name || "Untitled Album"}`}
-                                        fill
-                                        className="object-cover transition-transform group-hover:scale-105"
-                                        data-ai-hint="abstract colorful"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                                        <h3 className="text-lg font-bold truncate">{bracket?.album?.name || "Untitled Album"}</h3>
-                                        <p className="text-sm text-muted-foreground truncate">{bracket?.album?.artist || "Unknown Artist"}</p>
-                                    </div>
-                                </div>
-                            </Card>
+                        {safePendingBrackets.map((bracket: Bracket, index: number) => (
+                           <Link key={bracket?.id || index} href={`/group/${group.id}/bracket/${bracket.id}`}>
+                                <BracketCard bracket={bracket} />
+                           </Link>
                         ))}
                     </div>
                 ) : <p className="text-muted-foreground text-center py-4">No upcoming brackets have been added.</p>}
