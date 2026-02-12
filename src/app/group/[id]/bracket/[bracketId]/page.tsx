@@ -9,10 +9,11 @@ import { doc, collection, query } from 'firebase/firestore';
 import type { Group, Bracket, User as GroupUser, Track } from '@/lib/types';
 import Header from '@/components/group/Header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, PlayCircle, Music } from 'lucide-react';
+import { Loader2, PlayCircle, Shuffle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { activateBracket } from './actions';
+import { startBracket } from './actions';
+import { shuffleArray } from '@/lib/utils';
+import SetupBracketVisualizer from '@/components/group/SetupBracketVisualizer';
 
 export default function PendingBracketPage({ params }: { params: { id: string; bracketId: string } }) {
     const router = useRouter();
@@ -20,8 +21,9 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
     const { user: authUser, loading: authLoading } = useUser();
     const { toast } = useToast();
     
-    const [isActivating, setIsActivating] = useState(false);
+    const [isStarting, setIsStarting] = useState(false);
     const [guestNickname, setGuestNickname] = useState<string | null>(null);
+    const [shuffledTracks, setShuffledTracks] = useState<Track[]>([]);
 
     const groupRef = useMemo(() => firestore ? doc(firestore, 'groups', params.id) : null, [firestore, params.id]);
     const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'groups', params.id, 'users')) : null, [firestore, params.id]);
@@ -36,7 +38,6 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
           const storageKey = `guestNickname_${params.id}`;
           let storedNickname = localStorage.getItem(storageKey);
           if (!storedNickname) {
-            // Placeholder if generator is not available or for brevity
             storedNickname = "Guest" + Math.floor(Math.random() * 1000);
             localStorage.setItem(storageKey, storedNickname);
           }
@@ -46,23 +47,34 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
 
     const bracket = useMemo(() => {
         if (!groupData) return null;
-        const foundBracket = groupData.pendingBrackets?.find(b => b.id === params.bracketId);
-        return foundBracket;
+        return groupData.pendingBrackets?.find(b => b.id === params.bracketId) || null;
     }, [groupData, params.bracketId]);
 
-    const handleActivate = async () => {
-        setIsActivating(true);
+    useEffect(() => {
+        if (bracket?.album?.tracks && shuffledTracks.length === 0) {
+            setShuffledTracks(shuffleArray([...bracket.album.tracks]));
+        }
+    }, [bracket, shuffledTracks.length]);
+
+    const handleShuffle = () => {
+        setShuffledTracks(shuffleArray([...shuffledTracks]));
+    };
+
+    const handleStart = async () => {
+        if (!shuffledTracks || shuffledTracks.length === 0) return;
+        setIsStarting(true);
         try {
-            await activateBracket(params.id, params.bracketId);
-            toast({ title: "Bracket Activated!", description: "Let the games begin!" });
+            await startBracket(params.id, params.bracketId, shuffledTracks);
+            toast({ title: "Bracket Started!", description: "Let the games begin!" });
+            // The action will handle the redirect
         } catch (error) {
             console.error(error);
             toast({ 
                 variant: "destructive", 
-                title: "Activation Failed", 
+                title: "Starting Bracket Failed", 
                 description: error instanceof Error ? error.message : "An unknown error occurred." 
             });
-            setIsActivating(false);
+            setIsStarting(false);
         }
     };
 
@@ -103,50 +115,31 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
                 guestNickname={guestNickname}
                 onChangeNickname={() => {}}
             />
-            <main className="max-w-4xl mx-auto px-4 py-8">
-                <Card className="overflow-hidden">
-                    <div className="relative h-64 md:h-80">
-                        <Image
-                            src={bracket.album.artworkUrl}
-                            alt={`Album art for ${bracket.album.name}`}
-                            fill
-                            className="object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-                        <div className="absolute bottom-0 left-0 p-6">
-                            <h1 className="text-4xl md:text-5xl font-black text-white">{bracket.album.name}</h1>
-                            <h2 className="text-xl md:text-2xl text-muted-foreground font-semibold">{bracket.album.artist}</h2>
-                        </div>
-                    </div>
-                    <CardHeader>
-                        <CardTitle className="flex justify-between items-center">
-                            <span>Tracklist</span>
-                            {isOwner && (
-                                <Button onClick={handleActivate} disabled={isActivating}>
-                                    {isActivating ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <PlayCircle className="mr-2 h-4 w-4" />
-                                    )}
-                                    Play this Album
-                                </Button>
+            <main className="max-w-7xl mx-auto px-4 py-8">
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl font-black text-white">Bracket Setup</h1>
+                    <p className="text-muted-foreground">Shuffle the tracks and start the tournament when you're ready.</p>
+                </div>
+                {isOwner && (
+                    <div className="flex justify-center items-center gap-4 mb-8">
+                        <Button onClick={handleShuffle} disabled={isStarting} variant="outline">
+                            <Shuffle className="mr-2 h-4 w-4" />
+                            Shuffle
+                        </Button>
+                        <Button onClick={handleStart} disabled={isStarting}>
+                            {isStarting ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <PlayCircle className="mr-2 h-4 w-4" />
                             )}
-                        </CardTitle>
-                        <CardDescription>
-                            This is a pending bracket. Once activated, the tournament will begin.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="space-y-2">
-                            {bracket.album.tracks.map((track: Track) => (
-                                <li key={track.id} className="flex items-center gap-4 p-2 rounded-md hover:bg-card">
-                                    <Music className="h-5 w-5 text-muted-foreground" />
-                                    <span className="font-medium">{track.name}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </CardContent>
-                </Card>
+                            Play Album
+                        </Button>
+                    </div>
+                )}
+                
+                {shuffledTracks.length > 0 && (
+                    <SetupBracketVisualizer tracks={shuffledTracks} album={bracket.album} />
+                )}
             </main>
         </div>
     );
