@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 const spotifyApi = new SpotifyWebApi({
   clientId: process.env.SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-  redirectUri: `${process.env.NEXT_PUBLIC_URL}/api/spotify/callback`,
+  redirectUri: `${process.env.BASE_URL}/api/spotify/callback`,
 });
 
 interface SpotifyTokens {

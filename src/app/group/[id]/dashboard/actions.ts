@@ -24,7 +24,7 @@ export async function getSpotifyRedirectUrl(groupId: string, ownerId: string) {
         });
         
         const scopes = ['user-read-private', 'user-read-email'];
-        const redirectUri = `${process.env.NEXT_PUBLIC_URL}/api/spotify/callback`;
+        const redirectUri = `${process.env.BASE_URL}/api/spotify/callback`;
         
         const authUrl = new URL('https://accounts.spotify.com/authorize');
         authUrl.searchParams.append('response_type', 'code');

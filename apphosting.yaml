@@ -22,8 +22,8 @@ env:
     availability:
       - RUNTIME
   
-  - variable: NEXT_PUBLIC_URL
-    value: "https://studio--studio-7633580652-c2695.us-central1.hosted.app/" # This will be populated by App Hosting
+  - variable: BASE_URL
+    value: "https://studio--studio-7633580652-c2695.us-central1.hosted.app" # This will be populated by App Hosting
     availability:
       - BUILD
       - RUNTIME

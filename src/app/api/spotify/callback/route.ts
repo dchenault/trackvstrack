@@ -6,9 +6,16 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
+    const baseUrl = process.env.BASE_URL;
+
+    if (!baseUrl) {
+        console.error("BASE_URL environment variable is not set.");
+        // Using a generic error message for the user
+        return new NextResponse("Server configuration error. Please contact support.", { status: 500 });
+    }
 
     if (!code || !state) {
-        return NextResponse.redirect(new URL('/?error=Invalid_State_Or_Code', req.url));
+        return NextResponse.redirect(new URL('/?error=Invalid_State_Or_Code', baseUrl));
     }
     
     // 1. Verify state
@@ -17,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     if (!stateDoc.exists) {
         console.error('Spotify callback error: State mismatch or not found.');
-        return NextResponse.redirect(new URL('/?error=State_Mismatch', req.url));
+        return NextResponse.redirect(new URL('/?error=State_Mismatch', baseUrl));
     }
 
     const { ownerId, groupId } = stateDoc.data()!;
@@ -27,7 +34,7 @@ export async function GET(req: NextRequest) {
     const spotifyApi = new SpotifyWebApi({
         clientId: process.env.SPOTIFY_CLIENT_ID,
         clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-        redirectUri: `${process.env.NEXT_PUBLIC_URL}/api/spotify/callback`,
+        redirectUri: `${baseUrl}/api/spotify/callback`,
     });
 
     try {
@@ -47,12 +54,12 @@ export async function GET(req: NextRequest) {
         console.log(`Successfully stored Spotify tokens for user ${ownerId}`);
 
         // 4. Redirect back to the dashboard
-        const dashboardUrl = new URL(`/group/${groupId}/dashboard`, req.url);
+        const dashboardUrl = `${baseUrl}/group/${groupId}/dashboard`;
         return NextResponse.redirect(dashboardUrl);
 
     } catch (error) {
         console.error('Error during Spotify token exchange:', error);
-        const errorUrl = new URL(`/group/${groupId}/dashboard?error=token_exchange_failed`, req.url);
+        const errorUrl = `${baseUrl}/group/${groupId}/dashboard?error=token_exchange_failed`;
         return NextResponse.redirect(errorUrl);
     }
 }
