@@ -31,7 +31,7 @@ export default function CreateGroupPage() {
                     const querySnapshot = await getDocs(q);
                     if (!querySnapshot.empty) {
                         const firstGroup = querySnapshot.docs[0];
-                        router.replace(`/group/${firstGroup.id}`);
+                        router.replace(`/group/${firstGroup.id}/dashboard`);
                     } else {
                         setCheckingGroups(false);
                     }
@@ -93,7 +93,7 @@ export default function CreateGroupPage() {
                 description: `Your group "${groupName.trim()}" is ready.`,
             });
             
-            router.push(`/group/${groupSlug}`);
+            router.push(`/group/${groupSlug}/dashboard`);
         } catch (error: any) {
             console.error("Error creating group:", error);
             toast({
