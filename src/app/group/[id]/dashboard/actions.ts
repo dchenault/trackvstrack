@@ -149,13 +149,25 @@ export async function addAlbumBracket(formData: FormData) {
   } catch (error: any) {
     console.error('Error adding album bracket:', error);
 
-    // Handle Spotify API specific errors and ensure a string is always returned.
-    const errorMessage = error?.body?.error?.message || error?.message;
+    let errorMessage = 'An unknown error occurred. Please check the URL or your Spotify connection and try again.';
 
-    if (typeof errorMessage === 'string') {
-        return { success: false, error: errorMessage };
+    if (error?.body?.error?.message) {
+      // Common Spotify API error format
+      errorMessage = error.body.error.message;
+    } else if (error?.message) {
+      // A standard Error object
+      errorMessage = error.message;
+    } else if (typeof error === 'object' && error !== null) {
+      // If it's some other object, stringify it for debugging.
+      try {
+        errorMessage = JSON.stringify(error);
+      } catch {
+        errorMessage = "An un-serializable error object was thrown.";
+      }
+    } else if (typeof error === 'string') {
+        errorMessage = error;
     }
     
-    return { success: false, error: 'An unknown error occurred. Please check the URL or your Spotify connection and try again.' };
+    return { success: false, error: errorMessage };
   }
 }
