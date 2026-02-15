@@ -1,3 +1,4 @@
+
 import SpotifyWebApi from 'spotify-web-api-node';
 import { adminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -72,6 +73,19 @@ export function extractAlbumIdFromUrl(url: string): string | null {
     try {
         const path = new URL(url).pathname;
         const match = path.match(/\/album\/([a-zA-Z0-9]+)/);
+        return match ? match[1] : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Extracts Spotify Playlist ID from a URL.
+ */
+export function extractPlaylistIdFromUrl(url: string): string | null {
+    try {
+        const path = new URL(url).pathname;
+        const match = path.match(/\/playlist\/([a-zA-Z0-9]+)/);
         return match ? match[1] : null;
     } catch (error) {
         return null;

@@ -230,7 +230,7 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
           <DialogHeader>
             <DialogTitle>Start a New Bracket</DialogTitle>
             <DialogDescription>
-              Paste a Spotify album URL to generate a new tournament bracket.
+              Paste a Spotify album or playlist URL to generate a new tournament bracket.
             </DialogDescription>
           </DialogHeader>
           <AddAlbum onAlbumAdd={handleAddAlbum} loading={addAlbumLoading} />

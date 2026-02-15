@@ -1,10 +1,11 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { Bracket, Album, Track } from '@/lib/types';
-import { getSpotifyApi, extractAlbumIdFromUrl } from '@/lib/spotify';
+import { getSpotifyApi, extractAlbumIdFromUrl, extractPlaylistIdFromUrl } from '@/lib/spotify';
 import crypto from 'crypto';
 
 /**
@@ -43,7 +44,7 @@ export async function getSpotifyRedirectUrl(groupId: string, ownerId: string) {
 
 
 /**
- * Fetches album data from Spotify and creates a new bracket in Firestore.
+ * Fetches album or playlist data from Spotify and creates a new bracket in Firestore.
  */
 export async function addAlbumBracket(formData: FormData) {
   const groupId = formData.get('groupId')?.toString();
@@ -56,37 +57,83 @@ export async function addAlbumBracket(formData: FormData) {
   
   try {
     const albumId = extractAlbumIdFromUrl(url);
-    if (!albumId) {
-        throw new Error('Invalid Spotify Album URL.');
+    const playlistId = extractPlaylistIdFromUrl(url);
+
+    if (!albumId && !playlistId) {
+        throw new Error('Invalid Spotify URL. Please provide a valid album or playlist URL.');
     }
 
     const spotifyApi = await getSpotifyApi(ownerId);
-    const { body: albumData } = await spotifyApi.getAlbum(albumId);
-    
-    const albumTracks: Track[] = albumData.tracks.items.map(track => ({
-        id: track.id,
-        name: track.name,
-        trackNumber: track.track_number,
-        previewUrl: track.preview_url,
-    }));
+    let album: Album;
 
-    if (albumTracks.length < 2) {
-      throw new Error("Playlists must have at least 2 tracks to form a bracket.");
+    if (albumId) {
+        const { body: albumData } = await spotifyApi.getAlbum(albumId);
+        
+        const albumTracks: Track[] = albumData.tracks.items.map(track => ({
+            id: track.id,
+            name: track.name,
+            trackNumber: track.track_number,
+            previewUrl: track.preview_url,
+        }));
+
+        if (albumTracks.length < 2) {
+            throw new Error("Content must have at least 2 tracks to form a bracket.");
+        }
+        
+        if (albumTracks.length % 2 !== 0) {
+            albumTracks.pop();
+        }
+        
+        album = {
+            id: albumData.id,
+            name: albumData.name,
+            artist: albumData.artists.map(a => a.name).join(', '),
+            artists: albumData.artists.map(a => ({ name: a.name })),
+            artworkUrl: albumData.images?.[0]?.url || '',
+            tracks: albumTracks,
+        };
+    } else if (playlistId) {
+        const { body: playlistData } = await spotifyApi.getPlaylist(playlistId);
+
+        let allTracks: Track[] = [];
+        let offset = 0;
+        const limit = 100;
+        let response;
+        do {
+            response = await spotifyApi.getPlaylistTracks(playlistId, { offset, limit });
+            const tracksFromPage = response.body.items
+                .filter(item => item.track && item.track.type === 'track')
+                .map((item, index) => ({
+                    id: item.track!.id,
+                    name: item.track!.name,
+                    trackNumber: offset + index + 1,
+                    previewUrl: item.track!.preview_url,
+                }));
+            
+            allTracks = allTracks.concat(tracksFromPage);
+            offset += response.body.items.length;
+        } while (response.body.next);
+
+        if (allTracks.length < 2) {
+          throw new Error("Playlists must have at least 2 tracks to form a bracket.");
+        }
+        
+        if (allTracks.length % 2 !== 0) {
+            allTracks.pop();
+        }
+        
+        album = {
+            id: playlistData.id,
+            name: playlistData.name,
+            artist: playlistData.owner.display_name || 'Various Artists',
+            artists: [{ name: playlistData.owner.display_name || 'Various Artists' }],
+            artworkUrl: playlistData.images?.[0]?.url || '',
+            tracks: allTracks,
+        };
+    } else {
+        // This case is already handled by the initial check, but included for completeness
+        return { success: false, error: 'Invalid URL provided.' };
     }
-    
-    // Ensure even number of tracks for the bracket
-    if (albumTracks.length % 2 !== 0) {
-        albumTracks.pop();
-    }
-    
-    const album: Album = {
-        id: albumData.id,
-        name: albumData.name,
-        artist: albumData.artists.map(a => a.name).join(', '),
-        artists: albumData.artists.map(a => ({ name: a.name })),
-        artworkUrl: albumData.images?.[0]?.url || '',
-        tracks: albumTracks,
-    };
 
     const bracketId = `${groupId.substring(0, 5)}-${album.id.substring(0,5)}-${Date.now()}`;
     
