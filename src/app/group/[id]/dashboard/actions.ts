@@ -139,11 +139,12 @@ export async function addAlbumBracket(formData: FormData) {
     const groupRef = adminDb.collection('groups').doc(groupId);
 
     try {
+        const cleanBracket = JSON.parse(JSON.stringify(newBracket));
         await groupRef.update({
-            pendingBrackets: FieldValue.arrayUnion(newBracket)
+            pendingBrackets: FieldValue.arrayUnion(cleanBracket)
         });
     } catch (dbError: any) {
-        console.error('Firestore Write Error:', dbError.message, dbError.code);
+        console.error('Firestore Save Failed:', dbError.code, dbError.message);
         throw new Error(`Failed to save bracket to database. (${dbError.code || 'UNKNOWN'})`);
     }
 
