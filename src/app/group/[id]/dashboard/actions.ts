@@ -123,7 +123,6 @@ export async function addAlbumBracket(formData: FormData) {
             tracks: allTracks,
         };
     } else {
-        // This case is already handled by the initial check, but included for completeness
         return { success: false, error: 'Invalid URL provided.' };
     }
 
@@ -139,9 +138,14 @@ export async function addAlbumBracket(formData: FormData) {
 
     const groupRef = adminDb.collection('groups').doc(groupId);
 
-    await groupRef.update({
-      pendingBrackets: FieldValue.arrayUnion(newBracket)
-    });
+    try {
+        await groupRef.update({
+            pendingBrackets: FieldValue.arrayUnion(newBracket)
+        });
+    } catch (dbError: any) {
+        console.error('Firestore Write Error:', dbError.message, dbError.code);
+        throw new Error(`Failed to save bracket to database. (${dbError.code || 'UNKNOWN'})`);
+    }
 
     revalidatePath(`/group/${groupId}/dashboard`);
     return { success: true };
@@ -151,12 +155,10 @@ export async function addAlbumBracket(formData: FormData) {
 
     let errorMessage = 'An unknown error occurred. Please check the URL or your Spotify connection and try again.';
 
-    if (error?.body?.error?.message) {
-      // Common Spotify API error format
-      errorMessage = error.body.error.message;
-    } else if (error?.message) {
-      // A standard Error object
+    if (error?.message) {
       errorMessage = error.message;
+    } else if (error?.body?.error?.message) {
+      errorMessage = error.body.error.message;
     }
     
     return { success: false, error: errorMessage };
