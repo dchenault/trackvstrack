@@ -80,10 +80,6 @@ export async function addAlbumBracket(formData: FormData) {
             throw new Error("Content must have at least 2 tracks to form a bracket.");
         }
         
-        if (albumTracks.length % 2 !== 0) {
-            albumTracks.pop();
-        }
-        
         album = {
             id: albumData.id,
             name: albumData.name,
@@ -116,10 +112,6 @@ export async function addAlbumBracket(formData: FormData) {
 
         if (allTracks.length < 2) {
           throw new Error("Playlists must have at least 2 tracks to form a bracket.");
-        }
-        
-        if (allTracks.length % 2 !== 0) {
-            allTracks.pop();
         }
         
         album = {
@@ -156,6 +148,8 @@ export async function addAlbumBracket(formData: FormData) {
 
   } catch (error: any) {
     console.error('Error adding album bracket:', error);
-    return { success: false, error: error.message || 'An unknown error occurred.' };
+    // Handle Spotify API specific errors which might not have a .message property
+    const errorMessage = error.body?.error?.message || error.message || 'An unknown error occurred.';
+    return { success: false, error: errorMessage };
   }
 }
