@@ -147,7 +147,7 @@ export async function addAlbumBracket(formData: FormData) {
     return { success: true };
 
   } catch (error: any) {
-    console.error('Error adding album bracket:', error);
+    console.error('Error adding album bracket:', JSON.stringify(error, null, 2));
 
     let errorMessage = 'An unknown error occurred. Please check the URL or your Spotify connection and try again.';
 
@@ -157,15 +157,6 @@ export async function addAlbumBracket(formData: FormData) {
     } else if (error?.message) {
       // A standard Error object
       errorMessage = error.message;
-    } else if (typeof error === 'object' && error !== null) {
-      // If it's some other object, stringify it for debugging.
-      try {
-        errorMessage = JSON.stringify(error);
-      } catch {
-        errorMessage = "An un-serializable error object was thrown.";
-      }
-    } else if (typeof error === 'string') {
-        errorMessage = error;
     }
     
     return { success: false, error: errorMessage };
