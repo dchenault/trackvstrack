@@ -111,7 +111,7 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
         throw new Error(response.error || "Failed to create bracket.");
       }
     } catch (error: any) {
-      console.error("Error adding new album bracket:", error);
+      console.error('DIAGNOSTIC ERROR:', error.name, error.message, JSON.stringify(error, null, 2));
       toast({
         variant: "destructive",
         title: "Uh oh! Something went wrong.",

@@ -140,6 +140,9 @@ export async function addAlbumBracket(formData: FormData) {
 
     try {
         const cleanBracket = JSON.parse(JSON.stringify(newBracket));
+        console.log('--- Firestore Write ---');
+        console.log('Path:', groupRef.path);
+        console.log('Payload:', JSON.stringify(cleanBracket, null, 2));
         await groupRef.update({
             pendingBrackets: FieldValue.arrayUnion(cleanBracket)
         });
