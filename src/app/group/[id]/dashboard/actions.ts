@@ -148,8 +148,14 @@ export async function addAlbumBracket(formData: FormData) {
 
   } catch (error: any) {
     console.error('Error adding album bracket:', error);
-    // Handle Spotify API specific errors which might not have a .message property
-    const errorMessage = error.body?.error?.message || error.message || 'An unknown error occurred.';
-    return { success: false, error: errorMessage };
+
+    // Handle Spotify API specific errors and ensure a string is always returned.
+    const errorMessage = error?.body?.error?.message || error?.message;
+
+    if (typeof errorMessage === 'string') {
+        return { success: false, error: errorMessage };
+    }
+    
+    return { success: false, error: 'An unknown error occurred. Please check the URL or your Spotify connection and try again.' };
   }
 }
