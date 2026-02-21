@@ -87,6 +87,7 @@ export async function addAlbumBracket(formData: FormData) {
             artists: albumData.artists.map(a => ({ name: a.name })),
             artworkUrl: albumData.images?.[0]?.url || '',
             tracks: albumTracks,
+            description: null,
         };
     } else if (playlistId) {
         const { body: playlistData } = await spotifyApi.getPlaylist(playlistId);
@@ -121,6 +122,7 @@ export async function addAlbumBracket(formData: FormData) {
             artists: [{ name: playlistData.owner.display_name || 'Various Artists' }],
             artworkUrl: playlistData.images?.[0]?.url || '',
             tracks: allTracks,
+            description: playlistData.description || null,
         };
     } else {
         return { success: false, error: 'Invalid URL provided.' };

@@ -12,6 +12,7 @@ export interface Album {
   artists: { name: string }[]; // Full artist data
   artworkUrl: string;
   tracks: Track[];
+  description?: string | null;
 }
 
 export interface Matchup {
