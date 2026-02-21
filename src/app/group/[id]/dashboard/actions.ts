@@ -155,7 +155,7 @@ export async function addAlbumBracket(formData: FormData) {
     return { success: true };
 
   } catch (error: any) {
-    console.error('Error adding album bracket:', JSON.stringify(error, null, 2));
+    console.error('DIAGNOSTIC ERROR:', error.name, error.message, JSON.stringify(error, null, 2));
 
     let errorMessage = 'An unknown error occurred. Please check the URL or your Spotify connection and try again.';
 
@@ -167,4 +167,26 @@ export async function addAlbumBracket(formData: FormData) {
     
     return { success: false, error: errorMessage };
   }
+}
+
+
+export async function updateGroupName(groupId: string, newName: string) {
+    if (!groupId || !newName || !newName.trim()) {
+        return { success: false, error: 'Group ID and a valid new name are required.' };
+    }
+
+    try {
+        const groupRef = adminDb.collection('groups').doc(groupId);
+        await groupRef.update({
+            name: newName.trim()
+        });
+
+        revalidatePath(`/group/${groupId}/dashboard`);
+        revalidatePath(`/group/${groupId}`);
+        
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error updating group name:', error);
+        return { success: false, error: 'Could not update the group name. Please try again.' };
+    }
 }

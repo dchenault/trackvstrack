@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -136,6 +137,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
         group={group} 
         guestNickname={guestNickname}
         onChangeNickname={handleChangeNickname}
+        isOwner={isOwner}
       />
       
       <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col items-center gap-12">

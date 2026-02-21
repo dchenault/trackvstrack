@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from 'next/link';
-import { LayoutDashboard, Music, Users, Share2 } from 'lucide-react';
+import { LayoutDashboard, Music, Users, Share2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Group } from '@/lib/types';
 import {
@@ -18,10 +19,14 @@ export default function Header({
   group,
   guestNickname,
   onChangeNickname,
+  isOwner,
+  onEditName,
 }: { 
   group: Group,
   guestNickname: string | null,
   onChangeNickname: () => void,
+  isOwner?: boolean,
+  onEditName?: () => void,
 }) {
   const { toast } = useToast();
   const [shareLink, setShareLink] = useState('');
@@ -50,6 +55,20 @@ export default function Header({
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-3">
                 <span>{group.name}</span>
+                {isOwner && onEditName && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-white" onClick={onEditName}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Edit group name</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </h1>
               <div className="flex items-center gap-4 mt-1 text-muted-foreground">
                 <div className="flex items-center gap-2 text-sm">

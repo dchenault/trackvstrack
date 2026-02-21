@@ -23,14 +23,17 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Loader2, PlusCircle, Link as LinkIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { generateRandomNickname } from '@/lib/nickname-generator';
 import { useToast } from '@/hooks/use-toast';
-import { addAlbumBracket, getSpotifyRedirectUrl } from './actions';
+import { addAlbumBracket, getSpotifyRedirectUrl, updateGroupName } from './actions';
 import { SpotifyIcon } from '@/components/icons/spotify';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function GroupDashboardPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -42,6 +45,8 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
 
   const [showAddAlbumDialog, setShowAddAlbumDialog] = useState(false);
   const [addAlbumLoading, setAddAlbumLoading] = useState(false);
+  const [showEditNameDialog, setShowEditNameDialog] = useState(false);
+  const [editNameLoading, setEditNameLoading] = useState(false);
   
   const groupRef = useMemo(() => firestore ? doc(firestore, 'groups', params.id) : null, [firestore, params.id]);
   const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'groups', params.id, 'users')) : null, [firestore, params.id]);
@@ -124,6 +129,31 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
       setShowAddAlbumDialog(false);
     }
   };
+  
+  const handleUpdateGroupName = async (newName: string) => {
+    if (!groupData || !newName.trim() || newName.trim() === groupData.name) {
+      setShowEditNameDialog(false);
+      return;
+    }
+    setEditNameLoading(true);
+    try {
+      const response = await updateGroupName(params.id, newName);
+      if (response.success) {
+        toast({ title: "Group name updated!" });
+      } else {
+        throw new Error(response.error);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to update name",
+        description: error.message || "An unknown error occurred."
+      });
+    } finally {
+      setEditNameLoading(false);
+      setShowEditNameDialog(false);
+    }
+  };
 
 
   if (loading) {
@@ -161,6 +191,8 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
         group={group} 
         guestNickname={guestNickname}
         onChangeNickname={() => {}}
+        isOwner={isOwner}
+        onEditName={() => setShowEditNameDialog(true)}
       />
       
       <main className="max-w-7xl mx-auto px-4 py-8">
@@ -236,6 +268,42 @@ export default function GroupDashboardPage({ params }: { params: { id: string } 
           <AddAlbum onAlbumAdd={handleAddAlbum} loading={addAlbumLoading} />
         </DialogContent>
       </Dialog>
+      
+      <Dialog open={showEditNameDialog} onOpenChange={setShowEditNameDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Group Name</DialogTitle>
+            <DialogDescription>
+              Enter a new name for your group. This will be visible to all members.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const newName = formData.get('group-name') as string;
+              handleUpdateGroupName(newName);
+          }} className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="group-name">Group Name</Label>
+                <Input
+                  id="group-name"
+                  name="group-name"
+                  defaultValue={group.name}
+                  disabled={editNameLoading}
+                  required
+                />
+              </div>
+              <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setShowEditNameDialog(false)}>Cancel</Button>
+                  <Button type="submit" disabled={editNameLoading}>
+                      {editNameLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save Changes
+                  </Button>
+              </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

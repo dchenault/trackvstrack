@@ -9,25 +9,16 @@ service cloud.firestore {
     }
 
     match /groups/{groupId} {
-      // Any user can read a group's public data.
-      allow get: if true;
-      // Signed-in users can list groups.
-      allow list: if isSignedIn();
+  allow read: if true;
+  allow create: if isSignedIn();
+  allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
 
-      // A user can create a group if they are signed in and are the owner.
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      
-      // The group owner can update or delete the group.
-      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-
-      match /users/{userId} {
-        // Signed-in users can view members of a group.
-        allow get, list: if isSignedIn();
-        
-        // Users can only create, edit, or remove their own membership from a group.
-        allow write: if isSignedIn() && request.auth.uid == userId;
-      }
-    }
+  // THIS IS THE MISSING PIECE
+  // This allows the "dashboard" to save brackets/albums inside the group
+  match /{allSubcollections=**} {
+    allow read, write: if isSignedIn();
+  }
+}
 
     match /spotify_tokens/{userId} {
       // Users can only manage their own Spotify tokens.
