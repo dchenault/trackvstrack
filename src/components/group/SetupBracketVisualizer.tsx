@@ -7,7 +7,7 @@ const BracketMatchupItem = ({ track, position }: { track: Track | null, position
     if (!track) {
         return (
             <div className={cn(
-                "flex items-center h-10 px-3 text-sm rounded-md bg-card/30 text-muted-foreground/50 italic border-dashed border-2 border-border/20",
+                "flex items-center h-10 px-3 text-sm rounded-sm bg-card/30 text-muted-foreground/50 italic border-dashed border border-border/20",
                 position === 'top' ? 'rounded-b-none' : 'rounded-t-none'
             )}>
                 -- BYE --
@@ -16,7 +16,7 @@ const BracketMatchupItem = ({ track, position }: { track: Track | null, position
     }
     return (
         <div className={cn(
-            "flex items-center h-10 px-3 text-sm rounded-md bg-card text-card-foreground",
+            "flex items-center h-10 px-3 text-sm rounded-sm bg-card text-card-foreground border border-border/50",
             position === 'top' ? 'rounded-b-none' : 'rounded-t-none'
         )}>
             {track.name}
@@ -24,13 +24,33 @@ const BracketMatchupItem = ({ track, position }: { track: Track | null, position
     );
 };
 
-const PairedMatchup = ({ track1, track2 }: { track1: Track | null, track2: Track | null }) => {
+const PairedMatchup = ({ track1, track2, direction }: { track1: Track | null, track2: Track | null, direction: 'left' | 'right' }) => {
     return (
-        <div className="relative flex flex-col w-56">
-            <BracketMatchupItem track={track1} position="top" />
-            <div className="h-2" />
-            <BracketMatchupItem track={track2} position="bottom" />
-            <div className="absolute top-1/2 left-full h-px w-6 bg-border" />
+        <div className="relative w-56">
+            {/* Matchup Box */}
+            <div className="flex flex-col">
+                <BracketMatchupItem track={track1} position="top" />
+                <div className="h-2" />
+                <BracketMatchupItem track={track2} position="bottom" />
+            </div>
+            
+            {/* Connector Lines */}
+            <div className={cn(
+                "absolute top-1/4 h-px w-4 bg-border",
+                direction === 'right' ? 'left-full' : 'right-full'
+            )} />
+            <div className={cn(
+                "absolute bottom-1/4 h-px w-4 bg-border",
+                direction === 'right' ? 'left-full' : 'right-full'
+            )} />
+            <div className={cn(
+                "absolute top-1/4 h-1/2 w-px bg-border",
+                direction === 'right' ? 'left-[calc(100%+1rem)]' : 'right-[calc(100%+1rem)]'
+            )} />
+            <div className={cn(
+                "absolute top-1/2 -translate-y-px h-px w-4 bg-border",
+                 direction === 'right' ? 'left-[calc(100%+1rem)]' : 'right-[calc(100%+1rem)]'
+            )} />
         </div>
     );
 };
@@ -38,42 +58,45 @@ const PairedMatchup = ({ track1, track2 }: { track1: Track | null, track2: Track
 export default function SetupBracketVisualizer({ tracks, album }: { tracks: Track[], album: Album }) {
     
     let finalTracks: (Track | null)[] = [...tracks];
-    const nextPowerOfTwo = Math.pow(2, Math.ceil(Math.log2(finalTracks.length)));
-
-    if (finalTracks.length > 1 && finalTracks.length < nextPowerOfTwo) {
-        const byesNeeded = nextPowerOfTwo - finalTracks.length;
-        for (let i = 0; i < byesNeeded; i++) {
-            finalTracks.push(null);
+    const numTracks = finalTracks.length;
+    
+    if (numTracks > 1) {
+        const nextPowerOfTwo = Math.pow(2, Math.ceil(Math.log2(numTracks)));
+        if (numTracks < nextPowerOfTwo) {
+            const byesNeeded = nextPowerOfTwo - numTracks;
+            for (let i = 0; i < byesNeeded; i++) {
+                finalTracks.push(null);
+            }
         }
     }
 
     const midPoint = Math.ceil(finalTracks.length / 2);
     const leftTracks = finalTracks.slice(0, midPoint);
-    const rightTracks = finalTracks.slice(midPoint).reverse(); // Reverse for right side layout
+    const rightTracks = finalTracks.slice(midPoint);
 
-    const leftMatchups = [];
-    for (let i = 0; i < leftTracks.length; i += 2) {
-        leftMatchups.push({ track1: leftTracks[i], track2: leftTracks[i + 1] });
+    const createPairs = (trackList: (Track | null)[]) => {
+        const pairs = [];
+        for (let i = 0; i < trackList.length; i += 2) {
+            pairs.push({ track1: trackList[i], track2: trackList[i + 1] ?? null });
+        }
+        return pairs;
     }
 
-    const rightMatchups = [];
-    for (let i = 0; i < rightTracks.length; i += 2) {
-        // For the right side, the visual order is often reversed
-        rightMatchups.push({ track1: rightTracks[i], track2: rightTracks[i + 1] });
-    }
+    const leftPairs = createPairs(leftTracks);
+    const rightPairs = createPairs(rightTracks);
     
     return (
-        <div className="flex justify-center items-start gap-12 p-4 overflow-x-auto">
+        <div className="flex justify-center items-start gap-12 p-4 overflow-x-auto min-w-max">
             {/* Left Bracket */}
-            <div className="flex flex-col gap-10">
-                <h3 className="text-lg font-bold text-center text-secondary uppercase tracking-widest">Round 1</h3>
-                {leftMatchups.map((m, i) => (
-                    <PairedMatchup key={`left-${i}`} track1={m.track1} track2={m.track2} />
+            <div className="flex flex-col gap-10 items-end">
+                <h3 className="text-lg font-bold text-center text-secondary uppercase tracking-widest w-56">Round 1 (Left)</h3>
+                {leftPairs.map((p, i) => (
+                    <PairedMatchup key={`left-${i}`} track1={p.track1} track2={p.track2} direction="right" />
                 ))}
             </div>
 
             {/* Center Album Info */}
-            <div className="flex flex-col items-center gap-4 pt-16 sticky left-1/2 -translate-x-1/2">
+            <div className="flex flex-col items-center gap-4 pt-16 px-8 flex-shrink-0">
                 <div className="relative w-48 h-48 md:w-64 md:h-64">
                     <Image 
                         src={album.artworkUrl} 
@@ -83,17 +106,17 @@ export default function SetupBracketVisualizer({ tracks, album }: { tracks: Trac
                         data-ai-hint="abstract album art"
                     />
                 </div>
-                <div className="text-center">
+                <div className="text-center max-w-xs">
                     <h3 className="text-3xl font-black">{album.name}</h3>
                     <p className="text-xl text-muted-foreground">{album.artist}</p>
                 </div>
             </div>
 
             {/* Right Bracket */}
-            <div className="flex flex-col gap-10">
-                <h3 className="text-lg font-bold text-center text-secondary uppercase tracking-widest">Round 1</h3>
-                {rightMatchups.map((m, i) => (
-                    <PairedMatchup key={`right-${i}`} track1={m.track1} track2={m.track2} />
+            <div className="flex flex-col gap-10 items-start">
+                <h3 className="text-lg font-bold text-center text-secondary uppercase tracking-widest w-56">Round 1 (Right)</h3>
+                 {rightPairs.map((p, i) => (
+                    <PairedMatchup key={`right-${i}`} track1={p.track1} track2={p.track2} direction="left" />
                 ))}
             </div>
         </div>
