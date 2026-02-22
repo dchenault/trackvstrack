@@ -17,26 +17,27 @@ const BracketItem = ({ track, isWinner }: { track: Track | null; isWinner: boole
     </div>
 );
 
-const SingleMatchup = ({ matchup }: { matchup: Matchup }) => {
+const SingleMatchup = ({ matchup, onMatchupClick }: { matchup: Matchup; onMatchupClick?: (m: Matchup) => void }) => {
     const winnerIsTrack1 = !!matchup.winner && matchup.track1?.id === matchup.winner.id;
     const winnerIsTrack2 = !!matchup.winner && matchup.track2?.id === matchup.winner.id;
+    const isClickable = !!onMatchupClick && !!matchup.track1 && !!matchup.track2 && !matchup.winner;
 
-    if (!matchup.track1 && !matchup.track2) {
-        return (
-            <div className="overflow-hidden rounded-md border border-dashed bg-card/30 text-card-foreground shadow-sm">
-                <BracketItem track={null} isWinner={false} />
-                <hr className="border-border/20 border-dashed" />
-                <BracketItem track={null} isWinner={false} />
-            </div>
-        )
-    }
-
+    const Wrapper = isClickable ? 'button' : 'div';
+    const wrapperProps = {
+        className: cn(
+            "overflow-hidden rounded-md border text-card-foreground shadow-sm w-full",
+            isClickable && "cursor-pointer hover:border-primary/80 hover:shadow-primary/20 hover:shadow-lg transition-all",
+            !isClickable && "bg-card",
+        ),
+        onClick: () => isClickable && onMatchupClick(matchup),
+    };
+    
     return (
-        <div className="overflow-hidden rounded-md border bg-card text-card-foreground shadow-sm">
+        <Wrapper {...wrapperProps}>
             <BracketItem track={matchup.track1} isWinner={winnerIsTrack1} />
             <hr className="border-border" />
             <BracketItem track={matchup.track2} isWinner={winnerIsTrack2} />
-        </div>
+        </Wrapper>
     );
 };
 
@@ -52,7 +53,7 @@ const WinnerDisplay = ({ winner, albumName }: { winner: Track, albumName: string
 );
 
 
-const RoundColumn = ({ matchups, title, side, isFinal }: { matchups: Matchup[], title: string, side: 'left' | 'right' | 'center', isFinal: boolean }) => {
+const RoundColumn = ({ matchups, title, side, isFinal, onMatchupClick }: { matchups: Matchup[], title: string, side: 'left' | 'right' | 'center', isFinal: boolean, onMatchupClick?: (m: Matchup) => void }) => {
     const gapHeight = 48; // from gap-y-12
     const matchupHeight = 81; // h-10*2 for BracketItem + 1px for hr
     const connectorHeight = `calc(50% + ${gapHeight / 2}px + 0.5px)`;
@@ -64,7 +65,7 @@ const RoundColumn = ({ matchups, title, side, isFinal }: { matchups: Matchup[], 
             </h4>
             {matchups?.map((matchup, index) => (
                 <div key={matchup.id || `matchup-${index}`} className="relative">
-                    <SingleMatchup matchup={matchup} />
+                    <SingleMatchup matchup={matchup} onMatchupClick={onMatchupClick} />
                     {!isFinal && (
                         <>
                             <div className={cn( "absolute top-1/2 -translate-y-px h-px w-4 bg-border", side === 'left' ? "left-full" : "right-full")} />
@@ -84,8 +85,7 @@ const RoundColumn = ({ matchups, title, side, isFinal }: { matchups: Matchup[], 
     );
 }
 
-export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
-    // Guard against missing or malformed bracket data
+export default function BracketVisualizer({ bracket, onMatchupClick }: { bracket: Bracket; onMatchupClick?: (m: Matchup) => void; }) {
     if (!bracket || !Array.isArray(bracket.rounds) || bracket.rounds.length === 0) {
         return <div className="text-center py-8">Bracket data is not available yet.</div>;
     }
@@ -95,13 +95,10 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
         return <div className="text-center py-8">Round 1 data is missing or invalid.</div>;
     }
 
-    // This function builds a full placeholder structure and then fills it with real data.
-    // This is safer than trying to build the structure on the fly from potentially incomplete data.
     const buildAndFillBracket = (allRoundsData: Round[]): Matchup[][] => {
         const firstRoundMatchups = allRoundsData[0]?.matchups;
         if (!firstRoundMatchups) return [];
 
-        // 1. Build a complete placeholder structure based on the first round.
         const placeholderBracket: Matchup[][] = [[...firstRoundMatchups]];
         let lastRound = firstRoundMatchups;
 
@@ -109,10 +106,10 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
             const nextRound: Matchup[] = [];
             for (let i = 0; i < lastRound.length; i += 2) {
                 const m1 = lastRound[i];
-                const m2 = lastRound[i + 1]; // This can be undefined if odd number
+                const m2 = lastRound[i + 1]; 
                 nextRound.push({
                     id: `placeholder-${i}-${placeholderBracket.length}`,
-                    track1: m1?.winner ?? null, // Use winner from previous round if available
+                    track1: m1?.winner ?? null, 
                     track2: m2?.winner ?? null,
                     winner: null,
                     votes: { track1: 0, track2: 0 }
@@ -122,17 +119,22 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
             lastRound = nextRound;
         }
 
-        // 2. Fill the placeholder structure with actual data from `allRoundsData`.
         const filledBracket = placeholderBracket.map((round, roundIndex) => {
             const realRoundData = allRoundsData[roundIndex];
-            if (!realRoundData) return round; // No real data for this round, use placeholder
+            if (!realRoundData) return round; 
 
             return round.map(placeholderMatchup => {
                 const realMatchup = realRoundData.matchups.find(m => 
                     (m.track1?.id && (m.track1.id === placeholderMatchup.track1?.id || m.track1.id === placeholderMatchup.track2?.id)) ||
                     (m.track2?.id && (m.track2.id === placeholderMatchup.track1?.id || m.track2.id === placeholderMatchup.track2?.id))
                 );
-                return realMatchup || placeholderMatchup;
+
+                if (realMatchup) return realMatchup;
+                
+                const realMatchupById = realRoundData.matchups.find(m => m.id === placeholderMatchup.id);
+                if(realMatchupById) return realMatchupById;
+
+                return placeholderMatchup;
             });
         });
 
@@ -212,7 +214,7 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
             <div className="overflow-x-auto pb-8">
                 <div className="inline-flex items-start justify-center p-4 min-w-max gap-x-8">
                    {leftRounds?.map((round, rIndex) => (
-                       round && <RoundColumn key={`left-round-${rIndex}`} matchups={round} title={`Round ${rIndex + 1}`} side="left" isFinal={false} />
+                       round && <RoundColumn key={`left-round-${rIndex}`} matchups={round} title={`Round ${rIndex + 1}`} side="left" isFinal={false} onMatchupClick={onMatchupClick} />
                    ))}
 
                    <div className="flex flex-col h-full px-8 items-center justify-center pt-[7rem]">
@@ -220,13 +222,13 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
                              <WinnerDisplay winner={winner} albumName={album.name} />
                         ) : (
                             finalMatchup && (
-                                <RoundColumn matchups={[finalMatchup]} title="Finals" side="center" isFinal={true} />
+                                <RoundColumn matchups={[finalMatchup]} title="Finals" side="center" isFinal={true} onMatchupClick={onMatchupClick} />
                             )
                         )}
                    </div>
 
                    {rightRounds?.map((round, rIndex) => (
-                       round && <RoundColumn key={`right-round-${rIndex}`} matchups={round} title={`Round ${rightRounds.length - rIndex}`} side="right" isFinal={false}/>
+                       round && <RoundColumn key={`right-round-${rIndex}`} matchups={round} title={`Round ${rightRounds.length - rIndex}`} side="right" isFinal={false} onMatchupClick={onMatchupClick} />
                    )).reverse()}
                 </div>
             </div>

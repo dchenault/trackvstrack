@@ -1,15 +1,48 @@
+
+'use client';
+
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { Matchup } from '@/lib/types';
-import { Vote } from 'lucide-react';
+import { Loader2, Vote } from 'lucide-react';
+import { useTransition } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { castVote } from '@/app/group/[id]/actions';
 
-export default function CurrentMatchup({ matchup, albumArtUrl }: { matchup: Matchup; albumArtUrl: string }) {
+export default function CurrentMatchup({ 
+  groupId, 
+  matchup, 
+  albumArtUrl 
+}: { 
+  groupId: string; 
+  matchup: Matchup; 
+  albumArtUrl: string 
+}) {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  const handleVote = (winningTrackId: string) => {
+    startTransition(async () => {
+      try {
+        await castVote(groupId, matchup.id, winningTrackId);
+        toast({ title: "Vote Cast!", description: "The winner has advanced." });
+      } catch (error) {
+        console.error("Failed to cast vote", error);
+        toast({
+          variant: "destructive",
+          title: "Vote Failed",
+          description: error instanceof Error ? error.message : "An unknown error occurred.",
+        });
+      }
+    });
+  };
+
   if (!matchup.track1 || !matchup.track2) {
     return (
       <Card className="w-full max-w-4xl p-8 text-center bg-card/50">
-        <p className="text-muted-foreground">Waiting for the next matchup...</p>
+        <p className="text-muted-foreground">Select a matchup from the bracket below to start voting.</p>
       </Card>
     );
   }
@@ -17,6 +50,7 @@ export default function CurrentMatchup({ matchup, albumArtUrl }: { matchup: Matc
   const totalVotes = matchup.votes.track1 + matchup.votes.track2;
   const track1Percentage = totalVotes > 0 ? (matchup.votes.track1 / totalVotes) * 100 : 50;
   const track2Percentage = totalVotes > 0 ? (matchup.votes.track2 / totalVotes) * 100 : 50;
+  const canVote = !matchup.winner && !isPending;
 
   return (
     <div className="w-full max-w-4xl relative">
@@ -29,8 +63,14 @@ export default function CurrentMatchup({ matchup, albumArtUrl }: { matchup: Matc
               <h3 className="text-2xl font-bold">{matchup.track1.name}</h3>
               <p className="text-muted-foreground text-sm">Track {matchup.track1.trackNumber}</p>
             </div>
-            <Button className="mt-4 w-full max-w-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground group-hover:scale-105 transition-transform" size="lg">
-              <Vote className="mr-2" /> Vote
+            <Button 
+              className="mt-4 w-full max-w-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground group-hover:scale-105 transition-transform" 
+              size="lg"
+              onClick={() => handleVote(matchup.track1!.id)}
+              disabled={!canVote}
+            >
+              {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Vote className="mr-2" />}
+              Vote
             </Button>
             <div className="relative z-10 text-4xl font-black mt-4 text-white">{matchup.votes.track1}</div>
           </div>
@@ -48,8 +88,14 @@ export default function CurrentMatchup({ matchup, albumArtUrl }: { matchup: Matc
               <h3 className="text-2xl font-bold">{matchup.track2.name}</h3>
               <p className="text-muted-foreground text-sm">Track {matchup.track2.trackNumber}</p>
             </div>
-            <Button className="mt-4 w-full max-w-xs font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground group-hover:scale-105 transition-transform" size="lg">
-               <Vote className="mr-2" /> Vote
+            <Button 
+              className="mt-4 w-full max-w-xs font-bold bg-secondary hover:bg-secondary/90 text-secondary-foreground group-hover:scale-105 transition-transform" 
+              size="lg"
+              onClick={() => handleVote(matchup.track2!.id)}
+              disabled={!canVote}
+            >
+               {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Vote className="mr-2" />}
+               Vote
             </Button>
             <div className="relative z-10 text-4xl font-black mt-4 text-white">{matchup.votes.track2}</div>
           </div>

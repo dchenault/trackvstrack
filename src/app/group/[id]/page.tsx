@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collection, setDoc, query } from 'firebase/firestore';
-import type { Group, User as GroupUser } from '@/lib/types';
+import type { Group, User as GroupUser, Matchup } from '@/lib/types';
 import Header from '@/components/group/Header';
 import CurrentMatchup from '@/components/group/CurrentMatchup';
 import BracketVisualizer from '@/components/group/BracketVisualizer';
@@ -34,11 +34,12 @@ export default function GroupPage({ params }: { params: { id: string } }) {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [nickname, setNickname] = useState('');
 
-  // State for guest users
   const [guestNickname, setGuestNickname] = useState<string | null>(null);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   
+  const [selectedMatchup, setSelectedMatchup] = useState<Matchup | null>(null);
+
   const groupRef = useMemo(() => firestore ? doc(firestore, 'groups', params.id) : null, [firestore, params.id]);
   const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'groups', params.id, 'users')) : null, [firestore, params.id]);
 
@@ -70,7 +71,6 @@ export default function GroupPage({ params }: { params: { id: string } }) {
     }
   }, [authLoading, authUser, params.id]);
 
-
   const handleJoinGroup = async () => {
     if (!nickname.trim() || !firestore || !authUser) return;
 
@@ -100,7 +100,6 @@ export default function GroupPage({ params }: { params: { id: string } }) {
     }
   };
 
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -127,10 +126,22 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
   const isOwner = authUser?.uid === group.ownerId;
 
-  const activeMatchup = group.activeBracket?.rounds
+  // Find the first playable matchup as a default
+  const defaultActiveMatchup = group.activeBracket?.rounds
     .flatMap(r => r.matchups)
     .find(m => m.winner === null && m.track1 && m.track2);
-    
+
+  // Set the default matchup on initial load or data change
+  useEffect(() => {
+    if (defaultActiveMatchup) {
+      setSelectedMatchup(defaultActiveMatchup);
+    } else {
+      setSelectedMatchup(null);
+    }
+  }, [defaultActiveMatchup?.id]);
+
+  const matchupToDisplay = selectedMatchup || defaultActiveMatchup;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header 
@@ -141,10 +152,18 @@ export default function GroupPage({ params }: { params: { id: string } }) {
       />
       
       <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col items-center gap-12">
-        {group.activeBracket && activeMatchup ? (
-          <CurrentMatchup matchup={activeMatchup} albumArtUrl={group.activeBracket.album.artworkUrl} />
+        {group.activeBracket && matchupToDisplay ? (
+          <CurrentMatchup 
+            key={matchupToDisplay.id}
+            groupId={group.id}
+            matchup={matchupToDisplay} 
+            albumArtUrl={group.activeBracket.album.artworkUrl} 
+          />
         ) : group.activeBracket ? (
-             <BracketVisualizer bracket={group.activeBracket} />
+             <BracketVisualizer 
+                bracket={group.activeBracket} 
+                onMatchupClick={setSelectedMatchup}
+             />
         ) : (
           <Card className="w-full max-w-lg mx-auto mt-16 text-center">
             <CardHeader>
@@ -161,10 +180,13 @@ export default function GroupPage({ params }: { params: { id: string } }) {
           </Card>
         )}
 
-        {group.activeBracket && activeMatchup && (
+        {group.activeBracket && (
             <>
                 <Separator className="w-1/2 bg-border/20" />
-                <BracketVisualizer bracket={group.activeBracket} />
+                <BracketVisualizer 
+                    bracket={group.activeBracket} 
+                    onMatchupClick={setSelectedMatchup}
+                />
             </>
         )}
       </main>
@@ -207,7 +229,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
             <DialogDescription>
               Choose a nickname to join this group.
             </DialogDescription>
-          </DialogHeader>
+          </Header>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="nickname" className="text-right">
