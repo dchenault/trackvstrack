@@ -180,10 +180,10 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
                                 <WinnerDisplay winner={winner} albumName={album.name} />
                             </>
                         ) : (
-                            allVisualRounds[allVisualRounds.length - 1]?.matchups.length === 1 && (
+                            allVisualRounds[allVisualRounds.length - 1]?.length === 1 && (
                                 <>
                                     <h4 className="text-center font-bold uppercase tracking-widest text-secondary -mt-8 mb-0 absolute">Finals</h4>
-                                    <FinalMatchup matchup={allVisualRounds[allVisualRounds.length - 1].matchups[0]} />
+                                    <FinalMatchup matchup={allVisualRounds[allVisualRounds.length - 1][0]} />
                                 </>
                             )
                         )}
