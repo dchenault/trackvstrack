@@ -64,9 +64,6 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
             }
         }
         
-        // Shuffle the matchups so byes are distributed randomly in the bracket
-        shuffleArray(matchups);
-
         const firstRound: Round = {
             id: crypto.randomUUID(),
             name: `Round 1`,
