@@ -1,5 +1,5 @@
 
-import type { Bracket, Matchup, Track } from '@/lib/types';
+import type { Bracket, Matchup, Round, Track } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Trophy } from 'lucide-react';
 import Image from 'next/image';
@@ -62,7 +62,7 @@ const RoundColumn = ({ matchups, title, side, isFinal }: { matchups: Matchup[], 
             <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">
                 {title}
             </h4>
-            {matchups.map((matchup, index) => (
+            {matchups && matchups.map((matchup, index) => (
                 <div key={matchup.id || `matchup-${index}`} className="relative">
                     <SingleMatchup matchup={matchup} />
                     {!isFinal && (
@@ -85,6 +85,9 @@ const RoundColumn = ({ matchups, title, side, isFinal }: { matchups: Matchup[], 
 }
 
 export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
+    if (!bracket) {
+        return <div className="text-center py-8">No bracket data provided.</div>;
+    }
     const { rounds, winner, album } = bracket;
 
     if (!rounds || rounds.length === 0 || !rounds[0]?.matchups || rounds[0].matchups.length === 0) {
@@ -103,8 +106,6 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
         let roundIdx = 0;
         while (lastRoundMatchups.length > 1) {
             const nextRoundVisual: Matchup[] = [];
-            const nextRoundData = allRoundsData[roundIdx + 1]?.matchups || [];
-
             for (let i = 0; i < lastRoundMatchups.length; i += 2) {
                 const feeder1 = lastRoundMatchups[i];
                 const feeder2 = lastRoundMatchups[i + 1];
@@ -120,7 +121,7 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
                     continue;
                 }
 
-                const existingMatchup = nextRoundData.find(m =>
+                const existingMatchup = (allRoundsData[roundIdx + 1]?.matchups || []).find(m =>
                     (m.track1?.id === feeder1.winner?.id && m.track2?.id === feeder2.winner?.id) ||
                     (m.track1?.id === feeder2.winner?.id && m.track2?.id === feeder1.winner?.id)
                 );
@@ -138,7 +139,6 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
                 }
             }
             if (nextRoundVisual.length === 0 && lastRoundMatchups.length > 1) {
-                console.error("Bracket generation loop broke.");
                 break;
             }
             fullBracket.push(nextRoundVisual);
@@ -167,13 +167,16 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
         
         const sideRounds: Matchup[][] = [currentMatchups];
 
+        let roundIndex = 0;
         while (currentMatchups.length > 1) {
             const nextRound: Matchup[] = [];
+            const nextRoundData = allBracketRounds[roundIndex + 1] || [];
+
             for (let i = 0; i < currentMatchups.length; i += 2) {
-                const winner1 = currentMatchups[i].winner;
+                const winner1 = currentMatchups[i]?.winner;
                 const winner2 = currentMatchups[i+1]?.winner;
                 
-                const nextMatchup = allBracketRounds.flat().find(m => 
+                const nextMatchup = nextRoundData.find(m => 
                     (m.track1?.id === winner1?.id && m.track2?.id === winner2?.id) ||
                     (m.track1?.id === winner2?.id && m.track2?.id === winner1?.id)
                 );
@@ -182,16 +185,17 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
                     nextRound.push(nextMatchup);
                 } else {
                     nextRound.push({
-                        id: `ph-side-${side}-${i}`,
-                        track1: winner1,
-                        track2: winner2,
-                        winner: !winner2 && winner1 ? winner1 : null,
+                        id: `ph-side-${side}-${i}-${roundIndex}`,
+                        track1: winner1 || null,
+                        track2: winner2 || null,
+                        winner: (!winner2 && winner1) ? winner1 : null,
                         votes: { track1: 0, track2: 0 },
                     });
                 }
             }
             sideRounds.push(nextRound);
             currentMatchups = nextRound;
+            roundIndex++;
         }
         return sideRounds;
     }
@@ -213,8 +217,8 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
             
             <div className="overflow-x-auto pb-8">
                 <div className="inline-flex items-start justify-center p-4 min-w-max gap-x-8">
-                   {leftRounds.map((round, rIndex) => (
-                       <RoundColumn key={`left-round-${rIndex}`} matchups={round} title={`Round ${rIndex + 1}`} side="left" isFinal={false} />
+                   {leftRounds && leftRounds.map((round, rIndex) => (
+                       round && <RoundColumn key={`left-round-${rIndex}`} matchups={round} title={`Round ${rIndex + 1}`} side="left" isFinal={false} />
                    ))}
 
                    <div className="flex flex-col h-full px-8 items-center justify-center pt-[7rem]">
@@ -227,8 +231,8 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
                         )}
                    </div>
 
-                   {rightRounds.map((round, rIndex) => (
-                       <RoundColumn key={`right-round-${rIndex}`} matchups={round} title={`Round ${rIndex + 1}`} side="right" isFinal={false}/>
+                   {rightRounds && rightRounds.map((round, rIndex) => (
+                       round && <RoundColumn key={`right-round-${rIndex}`} matchups={round} title={`Round ${rIndex + 1}`} side="right" isFinal={false}/>
                    )).reverse()}
                 </div>
             </div>
