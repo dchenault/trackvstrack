@@ -57,9 +57,9 @@ const PairedMatchups = ({
         </div>
         {!isFinalPair && (
             <>
-                <div className="absolute left-full top-[44px] h-px w-6 bg-border" />
-                {matchup2 && <div className="absolute left-full bottom-[44px] h-px w-6 bg-border" />}
-                {matchup2 && <div className="absolute left-[calc(100%+1.5rem)] top-[44px] h-[calc(100%-88px)] w-px bg-border" />}
+                <div className="absolute left-full top-[22px] h-px w-6 bg-border" />
+                {matchup2 && <div className="absolute left-full bottom-[22px] h-px w-6 bg-border" />}
+                {matchup2 && <div className="absolute left-[calc(100%+1.5rem)] top-[22px] h-[calc(100%-44px)] w-px bg-border" />}
                 <div className="absolute left-[calc(100%+1.5rem)] top-1/2 h-px w-6 -translate-y-1/2 bg-border" />
             </>
         )}
@@ -103,7 +103,6 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
             const feeder1 = lastRoundMatchups[i];
             const feeder2 = lastRoundMatchups[i + 1];
 
-            // Attempt to find the real matchup from Firestore data if it has been created
             const existingMatchup = nextRoundData.find(m =>
                 (m.track1?.id === feeder1.winner?.id && m.track2?.id === feeder2?.winner?.id) ||
                 (m.track1?.id === feeder2?.winner?.id && m.track2?.id === feeder1.winner?.id)
@@ -112,13 +111,11 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
             if (existingMatchup) {
                 nextRoundVisual.push(existingMatchup);
             } else {
-                // If the matchup hasn't been played/created, create a visual placeholder
-                // The winner of the feeder matchup becomes a participant in the placeholder
                 nextRoundVisual.push({
                     id: `placeholder-${roundIdx}-${i}`,
                     track1: feeder1.winner,
                     track2: feeder2?.winner,
-                    winner: (feeder1.winner && !feeder2) ? feeder1.winner : null, // Propagate byes
+                    winner: (feeder1.winner && !feeder2?.winner) ? feeder1.winner : null,
                     votes: { track1: 0, track2: 0 },
                 });
             }
@@ -127,7 +124,6 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
         lastRoundMatchups = nextRoundVisual;
         roundIdx++;
     }
-
 
     return (
         <div className="w-full flex-1">
@@ -152,37 +148,44 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
             </div>
 
             <div className="overflow-x-auto pb-8">
-                <div className="inline-flex items-start gap-12 p-4">
-                    {allVisualRounds.map((matchups, roundIndex) => {
-                        const isFinalRound = roundIndex === allVisualRounds.length - 1;
-                        if (isFinalRound && matchups.length === 1) {
-                            return null;
+                <div className="inline-flex items-stretch gap-x-16 p-4">
+                    {allVisualRounds.map((roundMatchups, roundIndex) => {
+                        const isFinalColumn = roundIndex === allVisualRounds.length - 2;
+                        if (roundIndex === allVisualRounds.length - 1 && roundMatchups.length === 1) {
+                            return null; // Skip rendering the final matchup column here
                         }
+                        
+                        const verticalGap = 40 * (Math.pow(2, roundIndex)) + 24 * (Math.pow(2, roundIndex) -1);
+
                         return (
-                            <div key={roundIndex} className="flex flex-col justify-around gap-20 pt-8">
-                                <h4 className="text-center font-bold uppercase tracking-widest text-secondary -mt-8 mb-0 absolute">{rounds[roundIndex]?.name || `Round ${roundIndex+1}`}</h4>
-                                {Array.from({ length: Math.ceil(matchups.length / 2) }).map((_, i) => (
-                                    <PairedMatchups
-                                        key={matchups[i * 2]?.id || i}
-                                        matchup1={matchups[i * 2]}
-                                        matchup2={matchups[i * 2 + 1]}
-                                        isFinalPair={isFinalRound}
-                                    />
-                                ))}
+                            <div key={roundIndex} className="flex flex-col justify-center">
+                                <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">
+                                    {rounds[roundIndex]?.name || `Round ${roundIndex + 1}`}
+                                </h4>
+                                <div className="flex flex-col" style={{ gap: `${verticalGap}px` }}>
+                                    {Array.from({ length: Math.ceil(roundMatchups.length / 2) }).map((_, i) => (
+                                        <PairedMatchups
+                                            key={roundMatchups[i * 2]?.id || i}
+                                            matchup1={roundMatchups[i * 2]}
+                                            matchup2={roundMatchups[i * 2 + 1]}
+                                            isFinalPair={isFinalColumn}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         );
                     })}
 
-                    <div className="flex h-full flex-col items-center justify-around gap-20 pt-8">
+                    <div className="flex flex-col justify-center">
                         {winner ? (
                             <>
-                                <h4 className="text-center font-bold uppercase tracking-widest text-secondary -mt-8 mb-0 absolute">Winner</h4>
+                                <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">Winner</h4>
                                 <WinnerDisplay winner={winner} albumName={album.name} />
                             </>
                         ) : (
                             allVisualRounds[allVisualRounds.length - 1]?.length === 1 && (
                                 <>
-                                    <h4 className="text-center font-bold uppercase tracking-widest text-secondary -mt-8 mb-0 absolute">Finals</h4>
+                                    <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">Finals</h4>
                                     <FinalMatchup matchup={allVisualRounds[allVisualRounds.length - 1][0]} />
                                 </>
                             )
