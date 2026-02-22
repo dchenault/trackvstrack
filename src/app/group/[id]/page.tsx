@@ -229,7 +229,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
             <DialogDescription>
               Choose a nickname to join this group.
             </DialogDescription>
-          </Header>
+          </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="nickname" className="text-right">
