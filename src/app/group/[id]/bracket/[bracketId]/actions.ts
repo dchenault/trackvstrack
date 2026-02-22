@@ -6,7 +6,6 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { Bracket, Group, Matchup, Round, Track } from '@/lib/types';
-import { shuffleArray } from '@/lib/utils';
 import crypto from 'crypto';
 
 export async function startBracket(groupId: string, bracketId: string, tracks: Track[]) {
@@ -46,7 +45,7 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
                     winner: null,
                 });
             } else if (track1) {
-                // This track gets a "bye"
+                // This track gets a "bye" and automatically wins the round.
                 matchups.push({
                     id: crypto.randomUUID(),
                     track1: track1,
