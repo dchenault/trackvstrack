@@ -29,35 +29,43 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
         const bracketToActivate = groupData.pendingBrackets[pendingBracketIndex];
 
         // 1. Generate first round from the provided track order, handling byes
-        let finalTracks: (Track | null)[] = [...tracks];
-        const nextPowerOfTwo = Math.pow(2, Math.ceil(Math.log2(finalTracks.length)));
-        
-        if (finalTracks.length > 1 && finalTracks.length < nextPowerOfTwo) {
-            const byesNeeded = nextPowerOfTwo - finalTracks.length;
-            for (let i = 0; i < byesNeeded; i++) {
-                finalTracks.push(null);
+        const matchups: Matchup[] = [];
+        const tracksToPlay = [...tracks]; // Use the shuffled list from client
+        const numTracks = tracksToPlay.length;
+        const nextPowerOfTwo = Math.pow(2, Math.ceil(Math.log2(numTracks)));
+        const byesNeeded = nextPowerOfTwo - numTracks;
+
+        // Create matchups for tracks that have a bye
+        for (let i = 0; i < byesNeeded; i++) {
+            const trackWithBye = tracksToPlay.pop(); // Take from the end of the shuffled list
+            if (trackWithBye) {
+                matchups.push({
+                    id: crypto.randomUUID(),
+                    track1: trackWithBye,
+                    track2: null,
+                    votes: { track1: 0, track2: 0 },
+                    winner: trackWithBye, // Winner is immediate
+                });
+            }
+        }
+
+        // Create matchups for the rest of the tracks
+        while (tracksToPlay.length > 0) {
+            const track1 = tracksToPlay.pop();
+            const track2 = tracksToPlay.pop();
+            if (track1 && track2) {
+                matchups.push({
+                    id: crypto.randomUUID(),
+                    track1,
+                    track2,
+                    votes: { track1: 0, track2: 0 },
+                    winner: null,
+                });
             }
         }
         
-        // The list is already shuffled how the user wants it, now pair them up
-        const matchups: Matchup[] = [];
-        for (let i = 0; i < finalTracks.length; i += 2) {
-            const track1 = finalTracks[i];
-            const track2 = finalTracks[i + 1];
-
-            // If one track is a bye, the other is the winner
-            let winner: Track | null = null;
-            if (track1 && !track2) winner = track1;
-            if (!track1 && track2) winner = track2;
-            
-            matchups.push({
-                id: crypto.randomUUID(),
-                track1,
-                track2,
-                votes: { track1: 0, track2: 0 },
-                winner: winner,
-            });
-        }
+        // Shuffle the matchups so byes are distributed randomly in the bracket
+        shuffleArray(matchups);
 
         const firstRound: Round = {
             id: crypto.randomUUID(),
