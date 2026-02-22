@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { Bracket, Group, Matchup, Round, Track } from '@/lib/types';
 import crypto from 'crypto';
+import { shuffleArray } from '@/lib/utils';
 
 export async function startBracket(groupId: string, bracketId: string, tracks: Track[]) {
     const groupRef = adminDb.collection('groups').doc(groupId);
@@ -27,31 +28,36 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
 
         const bracketToActivate = groupData.pendingBrackets[pendingBracketIndex];
 
-        // 1. Generate first round matchups, handling byes for odd numbers.
+        // 1. Generate first round matchups using "power of two" logic for byes.
+        const numTracks = tracks.length;
+        const roundsNeeded = Math.ceil(Math.log2(numTracks));
+        const bracketSize = Math.pow(2, roundsNeeded);
+        const byesNeeded = bracketSize - numTracks;
+
+        // Create a list with tracks and nulls for byes
+        let players: (Track | null)[] = [...tracks];
+        for (let i = 0; i < byesNeeded; i++) {
+            players.push(null);
+        }
+
+        // Shuffle the players list to randomize byes
+        players = shuffleArray(players);
+
         const round1Matchups: Matchup[] = [];
-        const remainingTracks = [...tracks]; 
+        for (let i = 0; i < players.length; i += 2) {
+            const track1 = players[i];
+            const track2 = players[i+1];
 
-        while (remainingTracks.length > 0) {
-            const track1 = remainingTracks.shift();
-            const track2 = remainingTracks.shift(); 
-
-            if (track1 && track2) {
-                round1Matchups.push({
-                    id: crypto.randomUUID(),
-                    track1,
-                    track2,
-                    votes: { track1: 0, track2: 0 },
-                    winner: null,
-                });
-            } else if (track1) {
-                round1Matchups.push({
-                    id: crypto.randomUUID(),
-                    track1: track1,
-                    track2: null, // Bye
-                    votes: { track1: 0, track2: 0 },
-                    winner: track1, // Immediate winner
-                });
-            }
+            // If one track is null, the other gets a bye and is the winner.
+            const winner = !track1 ? track2 : !track2 ? track1 : null;
+            
+            round1Matchups.push({
+                id: crypto.randomUUID(),
+                track1: track1,
+                track2: track2,
+                votes: { track1: 0, track2: 0 },
+                winner: winner,
+            });
         }
         
         // 2. Build the full bracket structure with placeholders
@@ -62,9 +68,7 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
         }];
 
         let currentRoundMatchups = round1Matchups;
-        let roundCounter = 2;
-
-        while (currentRoundMatchups.length > 1) {
+        for (let roundCounter = 2; roundCounter <= roundsNeeded; roundCounter++) {
             const nextRoundMatchups: Matchup[] = [];
             for (let i = 0; i < currentRoundMatchups.length; i += 2) {
                 const m1 = currentRoundMatchups[i];
@@ -72,18 +76,20 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
 
                 const winner1 = m1?.winner;
                 const winner2 = m2?.winner;
+                
+                const nextMatchupWinner = (winner1 && !winner2) ? winner1 : (!winner1 && winner2) ? winner2 : null;
 
                 nextRoundMatchups.push({
                     id: crypto.randomUUID(),
                     track1: winner1 || null,
                     track2: winner2 || null,
-                    winner: (winner1 && !winner2) ? winner1 : null,
+                    winner: nextMatchupWinner,
                     votes: { track1: 0, track2: 0 },
                 });
             }
             allRounds.push({
                 id: crypto.randomUUID(),
-                name: `Round ${roundCounter++}`,
+                name: `Round ${roundCounter}`,
                 matchups: nextRoundMatchups
             });
             currentRoundMatchups = nextRoundMatchups;

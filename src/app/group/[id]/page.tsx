@@ -126,21 +126,19 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
   const isOwner = authUser?.uid === group.ownerId;
 
-  // Find the first playable matchup as a default
-  const defaultActiveMatchup = group.activeBracket?.rounds
-    .flatMap(r => r.matchups)
-    .find(m => m.winner === null && m.track1 && m.track2);
-
-  // Set the default matchup on initial load or data change
-  useEffect(() => {
-    if (defaultActiveMatchup) {
-      setSelectedMatchup(defaultActiveMatchup);
-    } else {
-      setSelectedMatchup(null);
+  // This removes the useEffect that was causing an infinite loop.
+  // The matchup to display is now derived state, which is safer.
+  const matchupToDisplay = useMemo(() => {
+    if (selectedMatchup) {
+      return selectedMatchup;
     }
-  }, [defaultActiveMatchup?.id]);
-
-  const matchupToDisplay = selectedMatchup || defaultActiveMatchup;
+    if (group.activeBracket?.status === 'active') {
+      return group.activeBracket.rounds
+        .flatMap(r => r.matchups)
+        .find(m => m.winner === null && m.track1 && m.track2) || null;
+    }
+    return null;
+  }, [selectedMatchup, group.activeBracket]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -159,7 +157,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
             matchup={matchupToDisplay} 
             albumArtUrl={group.activeBracket.album.artworkUrl} 
           />
-        ) : group.activeBracket ? (
+        ) : group.activeBracket?.status === 'complete' ? (
              <BracketVisualizer 
                 bracket={group.activeBracket} 
                 onMatchupClick={setSelectedMatchup}
@@ -180,7 +178,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
           </Card>
         )}
 
-        {group.activeBracket && (
+        {group.activeBracket && group.activeBracket.status !== 'complete' && (
             <>
                 <Separator className="w-1/2 bg-border/20" />
                 <BracketVisualizer 
