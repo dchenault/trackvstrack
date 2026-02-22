@@ -9,11 +9,13 @@ import { doc, collection, query } from 'firebase/firestore';
 import type { Group, Bracket, User as GroupUser, Track } from '@/lib/types';
 import Header from '@/components/group/Header';
 import { Button } from '@/components/ui/button';
-import { Loader2, PlayCircle, Shuffle } from 'lucide-react';
+import { Loader2, PlayCircle, Shuffle, SquareArrowOutUpRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { startBracket } from './actions';
+import { startBracket, removeTrackFromBracket } from './actions';
 import { shuffleArray } from '@/lib/utils';
 import SetupBracketVisualizer from '@/components/group/SetupBracketVisualizer';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
 export default function PendingBracketPage({ params }: { params: { id: string; bracketId: string } }) {
     const router = useRouter();
@@ -22,8 +24,12 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
     const { toast } = useToast();
     
     const [isStarting, setIsStarting] = useState(false);
+    const [isShuffling, setIsShuffling] = useState(false);
+    const [isRemoving, setIsRemoving] = useState(false);
     const [guestNickname, setGuestNickname] = useState<string | null>(null);
-    const [shuffledTracks, setShuffledTracks] = useState<Track[]>([]);
+    
+    // This state holds the tracks for client-side manipulation (shuffling)
+    const [localTracks, setLocalTracks] = useState<Track[] | null>(null);
 
     const groupRef = useMemo(() => firestore ? doc(firestore, 'groups', params.id) : null, [firestore, params.id]);
     const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'groups', params.id, 'users')) : null, [firestore, params.id]);
@@ -32,6 +38,20 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
     const { data: usersData, loading: usersLoading } = useCollection<GroupUser>(usersQuery);
 
     const loading = authLoading || groupLoading || usersLoading;
+
+    // Derived state for the specific bracket we are viewing
+    const bracket = useMemo(() => {
+        if (!groupData) return null;
+        return groupData.pendingBrackets?.find(b => b.id === params.bracketId) || null;
+    }, [groupData, params.bracketId]);
+    
+    // Effect to synchronize the local track state with data from Firestore.
+    // This runs only when the bracket data from Firestore changes.
+    useEffect(() => {
+        if (bracket?.album?.tracks) {
+            setLocalTracks(bracket.album.tracks);
+        }
+    }, [bracket]);
 
     useEffect(() => {
         if (!authLoading && !authUser) {
@@ -45,28 +65,28 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
         }
     }, [authLoading, authUser, params.id]);
 
-    const bracket = useMemo(() => {
-        if (!groupData) return null;
-        return groupData.pendingBrackets?.find(b => b.id === params.bracketId) || null;
-    }, [groupData, params.bracketId]);
-
-    useEffect(() => {
-        if (bracket?.album?.tracks && shuffledTracks.length === 0) {
-            setShuffledTracks(shuffleArray([...bracket.album.tracks]));
-        }
-    }, [bracket, shuffledTracks.length]);
-
     const handleShuffle = () => {
-        setShuffledTracks(shuffleArray([...shuffledTracks]));
+        if (!localTracks) return;
+        setIsShuffling(true);
+        setLocalTracks(shuffleArray([...localTracks]));
+        // Add a small delay to provide visual feedback for the shuffle
+        setTimeout(() => setIsShuffling(false), 300);
     };
 
     const handleStart = async () => {
-        if (!shuffledTracks || shuffledTracks.length === 0) return;
+        if (!localTracks || localTracks.length < 2) {
+             toast({ 
+                variant: "destructive", 
+                title: "Not enough tracks", 
+                description: "You need at least 2 tracks to start a bracket."
+            });
+            return;
+        }
         setIsStarting(true);
         try {
-            await startBracket(params.id, params.bracketId, shuffledTracks);
+            await startBracket(params.id, params.bracketId, localTracks);
             toast({ title: "Bracket Started!", description: "Let the games begin!" });
-            // The action will handle the redirect
+            // The action will handle the redirect, no need to push here.
         } catch (error) {
             console.error(error);
             toast({ 
@@ -75,6 +95,26 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
                 description: error instanceof Error ? error.message : "An unknown error occurred." 
             });
             setIsStarting(false);
+        }
+    };
+
+    const handleRemoveTrack = async (trackId: string) => {
+        if (isRemoving) return;
+        setIsRemoving(true);
+        try {
+            const result = await removeTrackFromBracket(params.id, params.bracketId, trackId);
+            if (!result.success) throw new Error(result.error);
+            toast({ title: "Track removed successfully." });
+            // Data will be automatically refetched by the useDoc hook due to server-side revalidation.
+        } catch (error) {
+            console.error(error);
+            toast({ 
+                variant: "destructive", 
+                title: "Failed to remove track", 
+                description: error instanceof Error ? error.message : "An unknown error occurred." 
+            });
+        } finally {
+            setIsRemoving(false);
         }
     };
 
@@ -116,29 +156,46 @@ export default function PendingBracketPage({ params }: { params: { id: string; b
                 onChangeNickname={() => {}}
             />
             <main className="max-w-7xl mx-auto px-4 py-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-black text-white">Bracket Setup</h1>
-                    <p className="text-muted-foreground">Shuffle the tracks and start the tournament when you're ready.</p>
-                </div>
-                {isOwner && (
-                    <div className="flex justify-center items-center gap-4 mb-8">
-                        <Button onClick={handleShuffle} disabled={isStarting} variant="outline">
-                            <Shuffle className="mr-2 h-4 w-4" />
-                            Shuffle
-                        </Button>
-                        <Button onClick={handleStart} disabled={isStarting}>
-                            {isStarting ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <PlayCircle className="mr-2 h-4 w-4" />
-                            )}
-                            Play Album
-                        </Button>
+                 <div className="mb-8 flex flex-col items-center gap-6 text-center md:flex-row md:items-start md:text-left">
+                    <Image src={bracket.album.artworkUrl} alt={`Album art for ${bracket.album.name}`} width={200} height={200} className="aspect-square rounded-lg object-cover shadow-2xl" data-ai-hint="abstract album art"/>
+                    <div className="flex-grow">
+                        <p className="text-sm font-bold uppercase tracking-widest text-secondary">Bracket Setup</p>
+                        <h1 className="text-4xl lg:text-5xl font-black text-white">{bracket.album.name}</h1>
+                        <h2 className="text-2xl text-muted-foreground">{bracket.album.artist}</h2>
+                        {bracket.album.description && (<p className="mt-2 max-w-prose text-sm text-muted-foreground">{bracket.album.description}</p>)}
+                         <Link href={`https://open.spotify.com/album/${bracket.album.id}`} target="_blank" className="inline-flex items-center gap-2 text-sm mt-2 text-muted-foreground hover:text-primary transition-colors">
+                            View on Spotify <SquareArrowOutUpRight className="h-4 w-4" />
+                        </Link>
                     </div>
+                </div>
+
+                {isOwner && (
+                    <Card className="mb-8 bg-card/50">
+                        <CardContent className="p-4 flex flex-col md:flex-row justify-center items-center gap-4">
+                             <Button onClick={handleShuffle} disabled={isStarting || isShuffling || isRemoving} variant="outline" size="lg">
+                                {isShuffling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Shuffle className="mr-2 h-4 w-4" />}
+                                Shuffle
+                            </Button>
+                            <Button onClick={handleStart} disabled={isStarting || isShuffling || isRemoving} size="lg">
+                                {isStarting ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <PlayCircle className="mr-2 h-4 w-4" />
+                                )}
+                                Play Album
+                            </Button>
+                        </CardContent>
+                    </Card>
                 )}
                 
-                {shuffledTracks.length > 0 && (
-                    <SetupBracketVisualizer tracks={shuffledTracks} album={bracket.album} />
+                {localTracks && localTracks.length > 0 && (
+                    <SetupBracketVisualizer 
+                        tracks={localTracks} 
+                        album={bracket.album} 
+                        onRemoveTrack={handleRemoveTrack}
+                        isOwner={isOwner}
+                        isRemoving={isRemoving}
+                    />
                 )}
             </main>
         </div>

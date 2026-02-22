@@ -139,3 +139,54 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
     revalidatePath(`/group/${groupId}/dashboard`);
     redirect(`/group/${groupId}`);
 }
+
+
+export async function removeTrackFromBracket(groupId: string, bracketId: string, trackId: string) {
+    const groupRef = adminDb.collection('groups').doc(groupId);
+
+    try {
+        const groupDoc = await groupRef.get();
+        if (!groupDoc.exists) {
+            throw new Error('Group not found.');
+        }
+        
+        const groupData = groupDoc.data() as Omit<Group, 'id' | 'users'>;
+        if (!groupData.pendingBrackets) {
+             throw new Error('No pending brackets found.');
+        }
+
+        const newPendingBrackets = groupData.pendingBrackets.map(bracket => {
+            if (bracket.id === bracketId) {
+                const updatedTracks = bracket.album.tracks.filter(track => track && track.id !== trackId);
+                
+                if (updatedTracks.length < 2) {
+                    throw new Error("A bracket must have at least 2 tracks.");
+                }
+
+                return {
+                    ...bracket,
+                    album: {
+                        ...bracket.album,
+                        tracks: updatedTracks
+                    }
+                };
+            }
+            return bracket;
+        });
+
+        await groupRef.update({
+            pendingBrackets: newPendingBrackets
+        });
+
+        revalidatePath(`/group/${groupId}/bracket/${bracketId}`);
+
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error removing track from bracket:", error);
+        if (error instanceof Error) {
+            return { success: false, error: error.message };
+        }
+        return { success: false, error: "An unknown error occurred while removing the track." };
+    }
+}
