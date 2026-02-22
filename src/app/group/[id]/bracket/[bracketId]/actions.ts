@@ -28,38 +28,31 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
 
         const bracketToActivate = groupData.pendingBrackets[pendingBracketIndex];
 
-        // 1. Generate first round from the provided track order, handling byes
+        // 1. Generate first round using a simpler, more robust pairing logic.
         const matchups: Matchup[] = [];
-        const tracksToPlay = [...tracks]; // Use the shuffled list from client
-        const numTracks = tracksToPlay.length;
-        const nextPowerOfTwo = Math.pow(2, Math.ceil(Math.log2(numTracks)));
-        const byesNeeded = nextPowerOfTwo - numTracks;
+        const remainingTracks = [...tracks]; // Use the shuffled list from client
 
-        // Create matchups for tracks that have a bye
-        for (let i = 0; i < byesNeeded; i++) {
-            const trackWithBye = tracksToPlay.pop(); // Take from the end of the shuffled list
-            if (trackWithBye) {
-                matchups.push({
-                    id: crypto.randomUUID(),
-                    track1: trackWithBye,
-                    track2: null,
-                    votes: { track1: 0, track2: 0 },
-                    winner: trackWithBye, // Winner is immediate
-                });
-            }
-        }
+        while (remainingTracks.length > 0) {
+            const track1 = remainingTracks.shift();
+            const track2 = remainingTracks.shift(); // This will be undefined if there's an odd number of tracks left
 
-        // Create matchups for the rest of the tracks
-        while (tracksToPlay.length > 0) {
-            const track1 = tracksToPlay.pop();
-            const track2 = tracksToPlay.pop();
             if (track1 && track2) {
+                // Regular matchup
                 matchups.push({
                     id: crypto.randomUUID(),
                     track1,
                     track2,
                     votes: { track1: 0, track2: 0 },
                     winner: null,
+                });
+            } else if (track1) {
+                // This track gets a "bye"
+                matchups.push({
+                    id: crypto.randomUUID(),
+                    track1: track1,
+                    track2: null,
+                    votes: { track1: 0, track2: 0 },
+                    winner: track1, // Winner is immediate
                 });
             }
         }

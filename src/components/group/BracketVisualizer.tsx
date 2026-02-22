@@ -54,7 +54,7 @@ const WinnerDisplay = ({ winner, albumName }: { winner: Track, albumName: string
 
 const RoundColumn = ({ matchups, title, side, isFinal }: { matchups: Matchup[], title: string, side: 'left' | 'right' | 'center', isFinal: boolean }) => {
     const gapHeight = 48; // from gap-y-12
-    const matchupHeight = 89; // h-10*2 for BracketItem + 1px for hr
+    const matchupHeight = 81; // h-10*2 for BracketItem + 1px for hr
     const connectorHeight = `calc(50% + ${gapHeight / 2}px + 0.5px)`;
 
     return (
@@ -62,7 +62,7 @@ const RoundColumn = ({ matchups, title, side, isFinal }: { matchups: Matchup[], 
             <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">
                 {title}
             </h4>
-            {matchups && matchups.map((matchup, index) => (
+            {matchups?.map((matchup, index) => (
                 <div key={matchup.id || `matchup-${index}`} className="relative">
                     <SingleMatchup matchup={matchup} />
                     {!isFinal && (
@@ -85,118 +85,112 @@ const RoundColumn = ({ matchups, title, side, isFinal }: { matchups: Matchup[], 
 }
 
 export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
-    if (!bracket) {
-        return <div className="text-center py-8">No bracket data provided.</div>;
-    }
-    const { rounds, winner, album } = bracket;
-
-    if (!rounds || rounds.length === 0 || !rounds[0]?.matchups || rounds[0].matchups.length === 0) {
+    // Guard against missing or malformed bracket data
+    if (!bracket || !Array.isArray(bracket.rounds) || bracket.rounds.length === 0) {
         return <div className="text-center py-8">Bracket data is not available yet.</div>;
     }
+    const { rounds, winner, album } = bracket;
+    const round1 = rounds[0];
+    if (!round1 || !Array.isArray(round1.matchups)) {
+        return <div className="text-center py-8">Round 1 data is missing or invalid.</div>;
+    }
 
-    const buildFullBracket = (allRoundsData: Round[]): Matchup[][] => {
-        if (!allRoundsData || allRoundsData.length === 0 || !allRoundsData[0]?.matchups) {
-            return [];
+    // This function builds a full placeholder structure and then fills it with real data.
+    // This is safer than trying to build the structure on the fly from potentially incomplete data.
+    const buildAndFillBracket = (allRoundsData: Round[]): Matchup[][] => {
+        const firstRoundMatchups = allRoundsData[0]?.matchups;
+        if (!firstRoundMatchups) return [];
+
+        // 1. Build a complete placeholder structure based on the first round.
+        const placeholderBracket: Matchup[][] = [[...firstRoundMatchups]];
+        let lastRound = firstRoundMatchups;
+
+        while (lastRound.length > 1) {
+            const nextRound: Matchup[] = [];
+            for (let i = 0; i < lastRound.length; i += 2) {
+                const m1 = lastRound[i];
+                const m2 = lastRound[i + 1]; // This can be undefined if odd number
+                nextRound.push({
+                    id: `placeholder-${i}-${placeholderBracket.length}`,
+                    track1: m1?.winner ?? null, // Use winner from previous round if available
+                    track2: m2?.winner ?? null,
+                    winner: null,
+                    votes: { track1: 0, track2: 0 }
+                });
+            }
+            placeholderBracket.push(nextRound);
+            lastRound = nextRound;
         }
-        
-        const fullBracket: Matchup[][] = [];
-        let lastRoundMatchups = [...allRoundsData[0].matchups];
-        fullBracket.push(lastRoundMatchups);
 
-        let roundIdx = 0;
-        while (lastRoundMatchups.length > 1) {
-            const nextRoundVisual: Matchup[] = [];
-            for (let i = 0; i < lastRoundMatchups.length; i += 2) {
-                const feeder1 = lastRoundMatchups[i];
-                const feeder2 = lastRoundMatchups[i + 1];
+        // 2. Fill the placeholder structure with actual data from `allRoundsData`.
+        const filledBracket = placeholderBracket.map((round, roundIndex) => {
+            const realRoundData = allRoundsData[roundIndex];
+            if (!realRoundData) return round; // No real data for this round, use placeholder
 
-                if (!feeder2) {
-                    nextRoundVisual.push({
-                        id: `bye-${feeder1.id}`,
-                        track1: feeder1.winner,
-                        track2: null,
-                        winner: feeder1.winner,
-                        votes: { track1: 0, track2: 0 },
-                    });
-                    continue;
-                }
-
-                const existingMatchup = (allRoundsData[roundIdx + 1]?.matchups || []).find(m =>
-                    (m.track1?.id === feeder1.winner?.id && m.track2?.id === feeder2.winner?.id) ||
-                    (m.track1?.id === feeder2.winner?.id && m.track2?.id === feeder1.winner?.id)
+            return round.map(placeholderMatchup => {
+                const realMatchup = realRoundData.matchups.find(m => 
+                    (m.track1?.id && (m.track1.id === placeholderMatchup.track1?.id || m.track1.id === placeholderMatchup.track2?.id)) ||
+                    (m.track2?.id && (m.track2.id === placeholderMatchup.track1?.id || m.track2.id === placeholderMatchup.track2?.id))
                 );
+                return realMatchup || placeholderMatchup;
+            });
+        });
 
-                if (existingMatchup) {
-                    nextRoundVisual.push(existingMatchup);
-                } else {
-                    nextRoundVisual.push({
-                        id: `placeholder-${roundIdx}-${i}`,
-                        track1: feeder1.winner,
-                        track2: feeder2.winner,
-                        winner: null,
-                        votes: { track1: 0, track2: 0 },
-                    });
-                }
-            }
-            if (nextRoundVisual.length === 0 && lastRoundMatchups.length > 1) {
-                break;
-            }
-            fullBracket.push(nextRoundVisual);
-            lastRoundMatchups = nextRoundVisual;
-            roundIdx++;
-        }
-        return fullBracket;
+        return filledBracket;
     };
-
-    const fullBracketStructure = buildFullBracket(rounds);
     
+    const fullBracketStructure = buildAndFillBracket(rounds);
+
     if (fullBracketStructure.length === 0) {
        return <div className="text-center py-8">Bracket data could not be processed.</div>;
     }
 
     const getRoundsForSide = (side: 'left' | 'right', allBracketRounds: Matchup[][]): Matchup[][] => {
         const round1 = allBracketRounds[0];
-        if (!round1) return [];
+        if (!round1 || round1.length === 0) return [];
 
         const midPoint = Math.ceil(round1.length / 2);
         const startIndex = side === 'left' ? 0 : midPoint;
         const endIndex = side === 'left' ? midPoint : round1.length;
         
-        let currentMatchups = round1.slice(startIndex, endIndex);
-        if (currentMatchups.length === 0) return [];
+        let currentSideMatchups = round1.slice(startIndex, endIndex);
+        if (currentSideMatchups.length === 0) return [];
         
-        const sideRounds: Matchup[][] = [currentMatchups];
+        const sideRounds: Matchup[][] = [currentSideMatchups];
 
-        let roundIndex = 0;
-        while (currentMatchups.length > 1) {
-            const nextRound: Matchup[] = [];
-            const nextRoundData = allBracketRounds[roundIndex + 1] || [];
+        for (let roundIndex = 0; roundIndex < allBracketRounds.length - 1; roundIndex++) {
+            const nextFullRound = allBracketRounds[roundIndex + 1];
+            if (!nextFullRound || currentSideMatchups.length <= 1) break;
 
-            for (let i = 0; i < currentMatchups.length; i += 2) {
-                const winner1 = currentMatchups[i]?.winner;
-                const winner2 = currentMatchups[i+1]?.winner;
+            const nextSideRound: Matchup[] = [];
+            for (let i = 0; i < currentSideMatchups.length; i += 2) {
+                const m1 = currentSideMatchups[i];
+                const m2 = currentSideMatchups[i+1];
+
+                const expectedWinner1 = m1?.winner;
+                const expectedWinner2 = m2?.winner;
                 
-                const nextMatchup = nextRoundData.find(m => 
-                    (m.track1?.id === winner1?.id && m.track2?.id === winner2?.id) ||
-                    (m.track1?.id === winner2?.id && m.track2?.id === winner1?.id)
+                const nextMatchup = nextFullRound.find(m => 
+                    (m.track1?.id === expectedWinner1?.id && m.track2?.id === expectedWinner2?.id) ||
+                    (m.track1?.id === expectedWinner2?.id && m.track2?.id === expectedWinner1?.id)
                 );
 
                 if (nextMatchup) {
-                    nextRound.push(nextMatchup);
+                    nextSideRound.push(nextMatchup);
                 } else {
-                    nextRound.push({
+                     nextSideRound.push({
                         id: `ph-side-${side}-${i}-${roundIndex}`,
-                        track1: winner1 || null,
-                        track2: winner2 || null,
-                        winner: (!winner2 && winner1) ? winner1 : null,
+                        track1: expectedWinner1 || null,
+                        track2: expectedWinner2 || null,
+                        winner: (!expectedWinner2 && expectedWinner1) ? expectedWinner1 : null,
                         votes: { track1: 0, track2: 0 },
                     });
                 }
             }
-            sideRounds.push(nextRound);
-            currentMatchups = nextRound;
-            roundIndex++;
+            sideRounds.push(nextSideRound);
+            currentSideMatchups = nextSideRound;
         }
+        
         return sideRounds;
     }
 
@@ -217,7 +211,7 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
             
             <div className="overflow-x-auto pb-8">
                 <div className="inline-flex items-start justify-center p-4 min-w-max gap-x-8">
-                   {leftRounds && leftRounds.map((round, rIndex) => (
+                   {leftRounds?.map((round, rIndex) => (
                        round && <RoundColumn key={`left-round-${rIndex}`} matchups={round} title={`Round ${rIndex + 1}`} side="left" isFinal={false} />
                    ))}
 
@@ -231,8 +225,8 @@ export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
                         )}
                    </div>
 
-                   {rightRounds && rightRounds.map((round, rIndex) => (
-                       round && <RoundColumn key={`right-round-${rIndex}`} matchups={round} title={`Round ${rIndex + 1}`} side="right" isFinal={false}/>
+                   {rightRounds?.map((round, rIndex) => (
+                       round && <RoundColumn key={`right-round-${rIndex}`} matchups={round} title={`Round ${rightRounds.length - rIndex}`} side="right" isFinal={false}/>
                    )).reverse()}
                 </div>
             </div>
