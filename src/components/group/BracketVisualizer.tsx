@@ -86,7 +86,7 @@ const WinnerDisplay = ({ winner, albumName }: { winner: Track, albumName: string
 export default function BracketVisualizer({ bracket }: { bracket: Bracket }) {
     const { rounds, winner, album } = bracket;
 
-    if (!rounds || rounds.length === 0) {
+    if (!rounds || rounds.length === 0 || !rounds[0].matchups || rounds[0].matchups.length === 0) {
         return <div>Bracket data is not available.</div>;
     }
 
