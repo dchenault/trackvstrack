@@ -15,14 +15,14 @@ const BracketMatchupItem = ({
 }) => {
     if (!track) {
         return (
-            <div className="flex items-center h-10 px-3 text-sm rounded-md bg-card/30 text-muted-foreground/50 italic border-dashed border border-border/20">
+            <div className="flex items-center h-10 px-3 text-sm rounded-md bg-card/30 text-muted-foreground/50 italic border-dashed border border-border/20 w-full">
                 -- BYE --
             </div>
         );
     }
 
     return (
-        <div className="group relative flex items-center justify-between h-10 px-3 text-sm rounded-md bg-card text-card-foreground border border-border/50">
+        <div className="group relative flex items-center justify-between h-10 px-3 text-sm rounded-md bg-card text-card-foreground border border-border/50 w-full">
             <span className="truncate pr-6">{track.name}</span>
             {isOwner && (
                 <button
@@ -77,7 +77,7 @@ export default function SetupBracketVisualizer({
             <h3 className="text-lg font-bold text-center text-secondary uppercase tracking-widest">
                 Round 1 Preview
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4 w-full">
+            <div className="flex flex-col gap-4 w-full max-w-md">
                 {pairs.map((p, i) => (
                     <div key={`setup-pair-${i}-${p.track1?.id || 'bye'}`} className="space-y-1">
                        <BracketMatchupItem 

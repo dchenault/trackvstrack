@@ -27,7 +27,7 @@ const MatchupCard = ({ matchup, onMatchupClick }: { matchup: Matchup; onMatchupC
     const Wrapper = isClickable ? 'button' : 'div';
     const wrapperProps = {
         className: cn(
-            "overflow-hidden rounded-md border text-card-foreground shadow-sm w-full",
+            "overflow-hidden rounded-md border text-card-foreground shadow-sm w-full max-w-md",
             isClickable && "cursor-pointer hover:border-primary/80 hover:shadow-primary/20 hover:shadow-lg transition-all",
             !isClickable && "bg-card",
         ),
@@ -88,7 +88,7 @@ export default function BracketVisualizer({ bracket, onMatchupClick }: { bracket
                             <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">
                                 {round.name}
                             </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <div className="flex flex-col items-center gap-4">
                                 {activeMatchups.map((matchup) => (
                                     <MatchupCard key={matchup.id} matchup={matchup} onMatchupClick={onMatchupClick} />
                                 ))}
