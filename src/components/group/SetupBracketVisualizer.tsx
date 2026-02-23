@@ -1,38 +1,28 @@
-
-import Image from 'next/image';
 import type { Album, Track } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 
 const BracketMatchupItem = ({ 
     track, 
-    position,
     onRemoveTrack,
     isOwner,
     isRemoving
 }: { 
     track: Track | null, 
-    position: 'top' | 'bottom',
     onRemoveTrack: (trackId: string) => void,
     isOwner: boolean,
     isRemoving: boolean
 }) => {
     if (!track) {
         return (
-            <div className={cn(
-                "flex items-center h-10 px-3 text-sm rounded-sm bg-card/30 text-muted-foreground/50 italic border-dashed border border-border/20",
-                position === 'top' ? 'rounded-b-none' : 'rounded-t-none'
-            )}>
+            <div className="flex items-center h-10 px-3 text-sm rounded-md bg-card/30 text-muted-foreground/50 italic border-dashed border border-border/20">
                 -- BYE --
             </div>
         );
     }
 
     return (
-        <div className={cn(
-            "group relative flex items-center justify-between h-10 px-3 text-sm rounded-sm bg-card text-card-foreground border border-border/50",
-            position === 'top' ? 'rounded-b-none' : 'rounded-t-none'
-        )}>
+        <div className="group relative flex items-center justify-between h-10 px-3 text-sm rounded-md bg-card text-card-foreground border border-border/50">
             <span className="truncate pr-6">{track.name}</span>
             {isOwner && (
                 <button
@@ -46,51 +36,6 @@ const BracketMatchupItem = ({
                     <X className="h-3 w-3" />
                 </button>
             )}
-        </div>
-    );
-};
-
-const PairedMatchup = ({ 
-    track1, 
-    track2, 
-    direction,
-    onRemoveTrack,
-    isOwner,
-    isRemoving 
-}: { 
-    track1: Track | null, 
-    track2: Track | null, 
-    direction: 'left' | 'right',
-    onRemoveTrack: (trackId: string) => void,
-    isOwner: boolean,
-    isRemoving: boolean
-}) => {
-    return (
-        <div className="relative w-56">
-            {/* Matchup Box */}
-            <div className="flex flex-col">
-                <BracketMatchupItem track={track1} position="top" onRemoveTrack={onRemoveTrack} isOwner={isOwner} isRemoving={isRemoving} />
-                <div className="h-2" />
-                <BracketMatchupItem track={track2} position="bottom" onRemoveTrack={onRemoveTrack} isOwner={isOwner} isRemoving={isRemoving} />
-            </div>
-            
-            {/* Connector Lines */}
-            <div className={cn(
-                "absolute top-1/4 h-px w-4 bg-border",
-                direction === 'right' ? 'left-full' : 'right-full'
-            )} />
-            <div className={cn(
-                "absolute bottom-1/4 h-px w-4 bg-border",
-                direction === 'right' ? 'left-full' : 'right-full'
-            )} />
-            <div className={cn(
-                "absolute top-1/4 h-1/2 w-px bg-border",
-                direction === 'right' ? 'left-[calc(100%+1rem)]' : 'right-[calc(100%+1rem)]'
-            )} />
-            <div className={cn(
-                "absolute top-1/2 -translate-y-px h-px w-4 bg-border",
-                 direction === 'right' ? 'left-[calc(100%+1rem)]' : 'right-[calc(100%+1rem)]'
-            )} />
         </div>
     );
 };
@@ -122,59 +67,32 @@ export default function SetupBracketVisualizer({
         }
     }
 
-    const midPoint = Math.ceil(finalTracks.length / 2);
-    const leftTracks = finalTracks.slice(0, midPoint);
-    const rightTracks = finalTracks.slice(midPoint);
-
-    const createPairs = (trackList: (Track | null)[]) => {
-        const pairs = [];
-        for (let i = 0; i < trackList.length; i += 2) {
-            pairs.push({ track1: trackList[i], track2: trackList[i + 1] ?? null });
-        }
-        return pairs;
+    const pairs = [];
+    for (let i = 0; i < finalTracks.length; i += 2) {
+        pairs.push({ track1: finalTracks[i], track2: finalTracks[i + 1] ?? null });
     }
-
-    const leftPairs = createPairs(leftTracks);
-    const rightPairs = createPairs(rightTracks);
     
     return (
-        <div className="flex justify-center items-start gap-12 p-4 overflow-x-auto min-w-max bg-card/20 rounded-lg border border-border/20">
-            {/* Left Bracket */}
-            <div className="flex flex-col gap-10 items-end">
-                <h3 className="text-lg font-bold text-center text-secondary uppercase tracking-widest w-56">Round 1 (Left)</h3>
-                {leftPairs.map((p, i) => (
-                    <PairedMatchup 
-                        key={`left-${i}-${p.track1?.id || 'bye'}`} 
-                        track1={p.track1} 
-                        track2={p.track2} 
-                        direction="right" 
-                        onRemoveTrack={onRemoveTrack}
-                        isOwner={isOwner}
-                        isRemoving={isRemoving}
-                    />
-                ))}
-            </div>
-
-            {/* Center Area */}
-            <div className="flex flex-col items-center gap-4 pt-16 px-8 flex-shrink-0">
-                 <div className="text-center max-w-xs">
-                    <h3 className="text-3xl font-black">VS</h3>
-                </div>
-            </div>
-
-            {/* Right Bracket */}
-            <div className="flex flex-col gap-10 items-start">
-                <h3 className="text-lg font-bold text-center text-secondary uppercase tracking-widest w-56">Round 1 (Right)</h3>
-                 {rightPairs.map((p, i) => (
-                    <PairedMatchup 
-                        key={`right-${i}-${p.track1?.id || 'bye'}`} 
-                        track1={p.track1} 
-                        track2={p.track2} 
-                        direction="left"
-                        onRemoveTrack={onRemoveTrack}
-                        isOwner={isOwner}
-                        isRemoving={isRemoving}
-                    />
+        <div className="flex flex-col items-center gap-6 p-4 overflow-x-auto bg-card/20 rounded-lg border border-border/20 w-full">
+            <h3 className="text-lg font-bold text-center text-secondary uppercase tracking-widest">
+                Round 1 Preview
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-4 w-full">
+                {pairs.map((p, i) => (
+                    <div key={`setup-pair-${i}-${p.track1?.id || 'bye'}`} className="space-y-1">
+                       <BracketMatchupItem 
+                            track={p.track1}
+                            onRemoveTrack={onRemoveTrack}
+                            isOwner={isOwner}
+                            isRemoving={isRemoving}
+                        />
+                         <BracketMatchupItem 
+                            track={p.track2}
+                            onRemoveTrack={onRemoveTrack}
+                            isOwner={isOwner}
+                            isRemoving={isRemoving}
+                        />
+                    </div>
                 ))}
             </div>
         </div>

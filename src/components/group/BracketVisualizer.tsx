@@ -1,15 +1,14 @@
 'use client';
 
-import type { Bracket, Matchup, Round, Track } from '@/lib/types';
+import type { Bracket, Matchup, Track } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Trophy } from 'lucide-react';
 import Image from 'next/image';
-import { useMemo } from 'react';
 
 const BracketItem = ({ track, isWinner }: { track: Track | null; isWinner: boolean }) => (
     <div
         className={cn(
-            'flex h-10 w-48 items-center justify-between overflow-hidden px-3 text-sm transition-colors',
+            'flex h-10 w-full items-center justify-between overflow-hidden px-3 text-sm transition-colors',
             !track && 'italic text-muted-foreground/60',
             isWinner ? 'font-bold bg-primary/20' : 'bg-card'
         )}
@@ -19,7 +18,8 @@ const BracketItem = ({ track, isWinner }: { track: Track | null; isWinner: boole
     </div>
 );
 
-const SingleMatchup = ({ matchup, onMatchupClick }: { matchup: Matchup; onMatchupClick?: (m: Matchup) => void }) => {
+
+const MatchupCard = ({ matchup, onMatchupClick }: { matchup: Matchup; onMatchupClick?: (m: Matchup) => void }) => {
     const winnerIsTrack1 = !!matchup.winner && matchup.track1?.id === matchup.winner.id;
     const winnerIsTrack2 = !!matchup.winner && matchup.track2?.id === matchup.winner.id;
     const isClickable = !!onMatchupClick && !!matchup.track1 && !!matchup.track2 && !matchup.winner;
@@ -44,7 +44,7 @@ const SingleMatchup = ({ matchup, onMatchupClick }: { matchup: Matchup; onMatchu
 };
 
 const WinnerDisplay = ({ winner, albumName }: { winner: Track, albumName: string }) => (
-    <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-8 w-[240px]">
+    <div className="flex h-full flex-col items-center justify-center gap-4 text-center px-8 py-12 rounded-lg bg-card border-2 border-yellow-400 shadow-2xl shadow-yellow-400/20">
         <Trophy className="h-20 w-20 text-yellow-400" strokeWidth={1} />
         <div>
             <p className="text-muted-foreground">Tournament Winner</p>
@@ -54,89 +54,17 @@ const WinnerDisplay = ({ winner, albumName }: { winner: Track, albumName: string
     </div>
 );
 
-
-const RoundColumn = ({ matchups, title, side, isFinal, onMatchupClick }: { matchups: Matchup[], title: string, side: 'left' | 'right' | 'center', isFinal: boolean, onMatchupClick?: (m: Matchup) => void }) => {
-    const gapHeight = 48; // from gap-y-12
-    const matchupHeight = 81; // h-10*2 for BracketItem + 1px for hr
-    const connectorHeight = `calc(50% + ${gapHeight / 2}px + 0.5px)`;
-
-    // Guard against rendering if matchups are not ready
-    if (!matchups) {
-        return null;
-    }
-
-    return (
-        <div className="flex flex-col justify-around gap-y-12">
-            <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">
-                {title}
-            </h4>
-            {matchups.map((matchup, index) => (
-                <div key={matchup.id || `matchup-${index}`} className="relative">
-                    <SingleMatchup matchup={matchup} onMatchupClick={onMatchupClick} />
-                    {!isFinal && (
-                        <>
-                            <div className={cn( "absolute top-1/2 -translate-y-px h-px w-4 bg-border", side === 'left' ? "left-full" : "right-full")} />
-                             {index % 2 === 0 ? (
-                                <div className={cn("absolute top-1/2 w-px bg-border", side === 'left' ? "left-[calc(100%+1rem)]" : "right-[calc(100%+1rem)]" )} style={{height: connectorHeight}} />
-                            ) : (
-                                <div className={cn("absolute bottom-1/2 w-px bg-border", side === 'left' ? "left-[calc(100%+1rem)]" : "right-[calc(100%+1rem)]")} style={{height: connectorHeight}} />
-                            )}
-                             {index % 2 === 0 && (
-                                <div className={cn("absolute h-px w-4 bg-border", side === 'left' ? "left-[calc(100%+1rem)]" : "right-[calc(100%+1rem)]")} style={{ top: `calc(50% + ${matchupHeight / 2}px + ${gapHeight/2}px)` }} />
-                            )}
-                        </>
-                    )}
-                </div>
-            ))}
-        </div>
-    );
-}
-
 export default function BracketVisualizer({ bracket, onMatchupClick }: { bracket: Bracket; onMatchupClick?: (m: Matchup) => void; }) {
     
-    // Top-level guard to prevent rendering with incomplete data.
     if (!bracket || !Array.isArray(bracket.rounds) || bracket.rounds.length === 0) {
         return <div className="text-center py-8">Bracket data is not available yet.</div>;
     }
     
     const { rounds, winner, album } = bracket;
 
-    // useMemo hook to perform calculations only when `rounds` data changes.
-    // This prevents the infinite loop and performance issues.
-    const { leftRounds, rightRounds, finalMatchup } = useMemo(() => {
-        
-        // Find the index of the final round (which has only 1 matchup).
-        const finalRoundIndex = rounds.findIndex(r => r.matchups.length === 1);
-
-        // Separate the rounds for the two sides of the bracket from the final round.
-        const sideRoundsData = finalRoundIndex !== -1 ? rounds.slice(0, finalRoundIndex) : rounds;
-        const finalMatchupData = finalRoundIndex !== -1 ? rounds[finalRoundIndex].matchups[0] : null;
-
-        const left: Round[] = [];
-        const right: Round[] = [];
-
-        // Split each pre-final round into a left and right half.
-        sideRoundsData.forEach(round => {
-            const mid = Math.ceil(round.matchups.length / 2);
-            left.push({ ...round, matchups: round.matchups.slice(0, mid) });
-            right.push({ ...round, matchups: round.matchups.slice(mid) });
-        });
-
-        return {
-            leftRounds: left,
-            rightRounds: right,
-            finalMatchup: finalMatchupData,
-        };
-    }, [rounds]);
-    
-    // Final guard after calculations.
-    if (!leftRounds.length || !rightRounds.length) {
-       return <div className="text-center py-8">Bracket data could not be processed.</div>;
-    }
-
     return (
         <div className="w-full flex-1">
-             <div className="mb-12 flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
+             <div className="mb-12 flex flex-col items-center gap-6 text-center md:flex-row md:items-start md:text-left">
                 <Image src={album.artworkUrl} alt={`Album art for ${album.name}`} width={150} height={150} className="aspect-square rounded-lg object-cover shadow-2xl" data-ai-hint="abstract album art"/>
                 <div>
                     <h2 className="text-4xl font-black">{album.name}</h2>
@@ -145,26 +73,31 @@ export default function BracketVisualizer({ bracket, onMatchupClick }: { bracket
                 </div>
             </div>
             
-            <div className="overflow-x-auto pb-8">
-                <div className="inline-flex items-start justify-center p-4 min-w-max gap-x-8">
-                   {leftRounds.map((round, rIndex) => (
-                       <RoundColumn key={`left-round-${rIndex}`} matchups={round.matchups} title={`Round ${rIndex + 1}`} side="left" isFinal={false} onMatchupClick={onMatchupClick} />
-                   ))}
+            <div className="flex flex-col gap-12">
+                {rounds.map((round, rIndex) => {
+                    // Filter out matchups that are completely empty placeholders for future rounds
+                    const activeMatchups = round.matchups.filter(m => m.track1 || m.track2);
+                    
+                    // Don't render the round if it has no active matchups
+                    if (activeMatchups.length === 0) {
+                        return null;
+                    }
 
-                   <div className="flex flex-col h-full px-8 items-center justify-center pt-[7rem]">
-                        {winner ? (
-                             <WinnerDisplay winner={winner} albumName={album.name} />
-                        ) : (
-                            finalMatchup && (
-                                <RoundColumn matchups={[finalMatchup]} title="Finals" side="center" isFinal={true} onMatchupClick={onMatchupClick} />
-                            )
-                        )}
-                   </div>
+                    return (
+                        <div key={round.id || `round-${rIndex}`}>
+                            <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">
+                                {round.name}
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {activeMatchups.map((matchup) => (
+                                    <MatchupCard key={matchup.id} matchup={matchup} onMatchupClick={onMatchupClick} />
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
 
-                   {rightRounds.map((round, rIndex) => (
-                       <RoundColumn key={`right-round-${rIndex}`} matchups={round.matchups} title={`Round ${rIndex + 1}`} side="right" isFinal={false} onMatchupClick={onMatchupClick} />
-                   ))}
-                </div>
+                {winner && <WinnerDisplay winner={winner} albumName={album.name} />}
             </div>
         </div>
     )
