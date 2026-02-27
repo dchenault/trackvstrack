@@ -29,10 +29,10 @@ export default function Home() {
       <main className="relative z-20 text-center flex flex-col items-center px-4">
         <div className="animate-neon-glow mb-4">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/studio-7633580652-c2695.firebasestorage.app/o/logo.png?alt=media&token=01f1f0bd-a8d4-42c3-a0c4-240e1e6989a2"
+            src="https://firebasestorage.googleapis.com/v0/b/studio-7633580652-c2695.firebasestorage.app/o/logo.png?alt=media&token=9a8e9f01-f321-4274-9253-a7bc04d3e2a6"
             alt="Battle of the Band logo"
-            width={700}
-            height={350}
+            width={525}
+            height={263}
             className="object-contain"
             priority
           />
