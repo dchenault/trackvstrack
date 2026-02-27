@@ -27,7 +27,7 @@ export default function Home() {
       <main className="relative z-20 text-center flex flex-col items-center px-4">
         <div className="flex items-center justify-center gap-4 md:gap-8">
             <h1
-              className="text-6xl md:text-8xl font-black text-transparent text-stroke-primary font-headline animate-neon-glow"
+              className="text-6xl md:text-8xl font-black text-cyan text-stroke-primary font-headline animate-neon-glow"
             >
               Battle of the Band
             </h1>
