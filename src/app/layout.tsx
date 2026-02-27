@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'Track vs Track',
-  description: 'Create a tournament bracket for your favorite albums.',
+  title: 'Battle of the Band',
+  description: 'Create a tournament bracket for your favorite albums and playlists.',
 };
 
 export default function RootLayout({

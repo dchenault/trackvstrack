@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Play, Loader2 } from 'lucide-react';
+import { Play, Loader2, Zap } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import UserProfile from '@/components/auth/UserProfile';
@@ -25,13 +25,17 @@ export default function Home() {
       </header>
 
       <main className="relative z-20 text-center flex flex-col items-center px-4">
-        <h1
-          className="text-6xl md:text-8xl font-black text-secondary font-headline animate-neon-glow"
-        >
-          Track vs Track
-        </h1>
+        <div className="flex items-center justify-center gap-4 md:gap-8">
+            <Zap className="h-16 w-16 md:h-24 md:w-24 text-primary animate-pulse -rotate-12" />
+            <h1
+              className="text-6xl md:text-8xl font-black text-primary font-headline animate-neon-glow"
+            >
+              Battle of the Band
+            </h1>
+            <Zap className="h-16 w-16 md:h-24 md:w-24 text-primary animate-pulse rotate-12" />
+        </div>
         <p className="text-lg text-muted-foreground mt-4 max-w-xl mx-auto">
-          Create a tournament for your favorite album and find out which track reigns supreme. Create a group, share the link, and let the voting begin!
+          Pit your favorite albums and playlists against each other in an epic tournament bracket. Let the crowd decide the ultimate champion!
         </p>
 
         <div className="mt-12">
@@ -51,7 +55,7 @@ export default function Home() {
               >
                 <Link href={playUrl} className="flex items-center gap-3 px-10 py-3">
                   <Play className="h-6 w-6" />
-                  <span>Play Album</span>
+                  <span>Start a Battle</span>
                 </Link>
               </Button>
             </div>

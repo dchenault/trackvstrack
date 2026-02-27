@@ -35,9 +35,9 @@ export default function LoginPage() {
                 <Link href="/" className="inline-block mb-4">
                     <Music className="h-12 w-12 text-primary" />
                 </Link>
-                <h1 className="text-4xl font-bold text-foreground">Sign In to Track vs Track</h1>
+                <h1 className="text-4xl font-bold text-foreground">Sign In to Battle of the Band</h1>
                 <p className="text-muted-foreground mt-2">
-                    Join the ultimate album showdown.
+                    Join the ultimate music showdown.
                 </p>
             </div>
             <div className="w-full max-w-sm">
