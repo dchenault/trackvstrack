@@ -90,14 +90,14 @@ export default {
           },
         },
         'neon-glow': {
-          '0%, 100%': { 'text-shadow': '0 0 5px hsl(var(--primary)), 0 0 10px hsl(var(--primary)), 0 0 20px hsl(var(--primary))' },
-          '50%': { 'text-shadow': '0 0 10px hsl(var(--primary)), 0 0 20px hsl(var(--primary)), 0 0 40px hsl(var(--primary))' },
+          '0%, 100%': { filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.8)) drop-shadow(0 0 15px hsl(var(--primary) / 0.6))' },
+          '50%': { filter: 'drop-shadow(0 0 15px hsl(var(--primary) / 0.8)) drop-shadow(0 0 30px hsl(var(--primary) / 0.6))' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'neon-glow': 'neon-glow 2s ease-in-out infinite',
+        'neon-glow': 'neon-glow 2.5s ease-in-out infinite',
       },
     },
   },

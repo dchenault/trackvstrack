@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Play, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
@@ -25,12 +26,15 @@ export default function Home() {
       </header>
 
       <main className="relative z-20 text-center flex flex-col items-center px-4">
-        <div className="flex items-center justify-center gap-4 md:gap-8">
-            <h1
-              className="text-6xl md:text-8xl font-black text-cyan text-stroke-primary font-headline animate-neon-glow"
-            >
-              Battle of the Band
-            </h1>
+        <div className="animate-neon-glow mb-4">
+          <Image
+            src="https://static.vecteezy.com/system/resources/previews/037/293/057/original/battle-of-the-band-text-effect-with-3d-style-and-futuristic-text-effect-png.png"
+            alt="Battle of the Band logo"
+            width={700}
+            height={350}
+            className="object-contain"
+            priority
+          />
         </div>
         <p className="text-lg text-muted-foreground mt-4 max-w-xl mx-auto">
           Pit your favorite albums and playlists against each other in an epic tournament bracket. Let the crowd decide the ultimate champion!
