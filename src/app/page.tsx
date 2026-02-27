@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -28,7 +29,7 @@ export default function Home() {
       <main className="relative z-20 text-center flex flex-col items-center px-4">
         <div className="animate-neon-glow mb-4">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/studio-7633580652-c2695.appspot.com/o/logo.png?alt=media"
+            src="https://firebasestorage.googleapis.com/v0/b/studio-7633580652-c2695.firebasestorage.app/o/logo.png?alt=media&token=01f1f0bd-a8d4-42c3-a0c4-240e1e6989a2"
             alt="Battle of the Band logo"
             width={700}
             height={350}
