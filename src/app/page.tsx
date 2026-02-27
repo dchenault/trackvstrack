@@ -28,7 +28,7 @@ export default function Home() {
       <main className="relative z-20 text-center flex flex-col items-center px-4">
         <div className="animate-neon-glow mb-4">
           <Image
-            src="https://firebasestorage.googleapis.com/v0/b/studio-7633580652-c2695.firebasestorage.app/o/words.jpeg?alt=media&token=d9ee6afa-6728-4d80-b5fd-bf31a49a2e4d"
+            src="https://firebasestorage.googleapis.com/v0/b/studio-7633580652-c2695.firebasestorage.app/o/trans.png?alt=media&token=1118b640-d4e6-4446-a6d2-1889275f8911"
             alt="Battle of the Band logo"
             width={525}
             height={175}
