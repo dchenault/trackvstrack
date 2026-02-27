@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -37,7 +38,7 @@ export default function Home() {
           />
         </div>
         <p className="text-lg text-muted-foreground mt-4 max-w-xl mx-auto">
-          Pit your favorite albums and playlists against each other in an epic tournament bracket. Let the crowd decide the ultimate champion!
+          Turn any album or playlist into a head‑to‑head song showdown where fans vote each round to crown the ultimate track.
         </p>
 
         <div className="mt-12">
