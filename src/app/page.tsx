@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Play, Loader2, Drum, MicVocal } from 'lucide-react';
+import { Play, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import UserProfile from '@/components/auth/UserProfile';
@@ -26,13 +26,11 @@ export default function Home() {
 
       <main className="relative z-20 text-center flex flex-col items-center px-4">
         <div className="flex items-center justify-center gap-4 md:gap-8">
-            <Drum className="h-16 w-16 md:h-24 md:w-24 text-primary animate-pulse -rotate-12" />
             <h1
               className="text-6xl md:text-8xl font-black text-foreground font-headline animate-neon-glow"
             >
               Battle of the Band
             </h1>
-            <MicVocal className="h-16 w-16 md:h-24 md:w-24 text-primary animate-pulse rotate-12" />
         </div>
         <p className="text-lg text-muted-foreground mt-4 max-w-xl mx-auto">
           Pit your favorite albums and playlists against each other in an epic tournament bracket. Let the crowd decide the ultimate champion!
