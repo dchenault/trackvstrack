@@ -60,3 +60,10 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .text-stroke-primary {
+    -webkit-text-stroke: 2px hsl(var(--primary));
+    text-stroke: 2px hsl(var(--primary));
+  }
+}
