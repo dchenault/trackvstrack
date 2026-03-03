@@ -126,13 +126,14 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
   const isOwner = authUser?.uid === group.ownerId;
 
-  // This removes the useEffect that was causing an infinite loop.
-  // The matchup to display is now derived state, which is safer.
+  // This derives the matchup to display. If one is manually selected, show it.
+  // Otherwise, find the first available undecided matchup.
   const matchupToDisplay = useMemo(() => {
     if (selectedMatchup) {
       return selectedMatchup;
     }
     if (group.activeBracket?.status === 'active') {
+      // Flatten all matchups from all rounds and find the first one that is undecided.
       return group.activeBracket.rounds
         .flatMap(r => r.matchups)
         .find(m => m.winner === null && m.track1 && m.track2) || null;
@@ -152,7 +153,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
       <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col items-start gap-12">
         {group.activeBracket && matchupToDisplay ? (
           <CurrentMatchup 
-            key={matchupToDisplay.id}
+            key={matchupToDisplay.id} // Key forces re-mount when matchup changes
             groupId={group.id}
             matchup={matchupToDisplay} 
             albumArtUrl={group.activeBracket.album.artworkUrl} 

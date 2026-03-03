@@ -30,7 +30,7 @@ export interface Matchup {
 
 export interface Round {
   id: string;
-  name: string;
+  name:string;
   matchups: Matchup[];
 }
 
