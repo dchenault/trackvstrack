@@ -24,6 +24,7 @@ export interface Matchup {
     track1: number;
     track2: number;
   };
+  voters?: string[]; // List of user IDs who have voted
 }
 
 export interface Round {

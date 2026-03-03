@@ -57,6 +57,7 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
                 track2: track2,
                 votes: { track1: 0, track2: 0 },
                 winner: winner,
+                voters: [],
             });
         }
         
@@ -85,6 +86,7 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
                     track2: winner2 || null,
                     winner: nextMatchupWinner,
                     votes: { track1: 0, track2: 0 },
+                    voters: [],
                 });
             }
             allRounds.push({

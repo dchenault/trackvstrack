@@ -2,8 +2,10 @@
 
 import type { Bracket, Matchup, Track } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Trophy } from 'lucide-react';
+import { Trophy, Zap } from 'lucide-react';
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const BracketItem = ({ track, isWinner }: { track: Track | null; isWinner: boolean }) => (
     <div
@@ -19,27 +21,16 @@ const BracketItem = ({ track, isWinner }: { track: Track | null; isWinner: boole
 );
 
 
-const MatchupCard = ({ matchup, onMatchupClick }: { matchup: Matchup; onMatchupClick?: (m: Matchup) => void }) => {
+const MatchupCard = ({ matchup }: { matchup: Matchup }) => {
     const winnerIsTrack1 = !!matchup.winner && matchup.track1?.id === matchup.winner.id;
     const winnerIsTrack2 = !!matchup.winner && matchup.track2?.id === matchup.winner.id;
-    const isClickable = !!onMatchupClick && !!matchup.track1 && !!matchup.track2 && !matchup.winner;
-
-    const Wrapper = isClickable ? 'button' : 'div';
-    const wrapperProps = {
-        className: cn(
-            "overflow-hidden rounded-md border text-card-foreground shadow-sm w-full",
-            isClickable && "cursor-pointer hover:border-primary/80 hover:shadow-primary/20 hover:shadow-lg transition-all",
-            !isClickable && "bg-card",
-        ),
-        onClick: () => isClickable && onMatchupClick(matchup),
-    };
     
     return (
-        <Wrapper {...wrapperProps}>
+        <div className="overflow-hidden rounded-md border text-card-foreground shadow-sm w-full bg-card">
             <BracketItem track={matchup.track1} isWinner={winnerIsTrack1} />
             <hr className="border-border" />
             <BracketItem track={matchup.track2} isWinner={winnerIsTrack2} />
-        </Wrapper>
+        </div>
     );
 };
 
@@ -63,7 +54,7 @@ export default function BracketVisualizer({ bracket, onMatchupClick }: { bracket
     const { rounds, winner, album } = bracket;
 
     return (
-        <div className="w-full flex-1">
+        <div className="w-full">
              <div className="mb-12 flex flex-col items-center gap-6 text-center md:flex-row md:items-start md:text-left">
                 <Image src={album.artworkUrl} alt={`Album art for ${album.name}`} width={150} height={150} className="aspect-square rounded-lg object-cover shadow-2xl" data-ai-hint="abstract album art"/>
                 <div>
@@ -79,10 +70,38 @@ export default function BracketVisualizer({ bracket, onMatchupClick }: { bracket
                         <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-2 h-5">
                             {round.name}
                         </h4>
-                        <div className="flex flex-col gap-y-8">
-                            {round.matchups.map((matchup) => (
-                                <MatchupCard key={matchup.id} matchup={matchup} onMatchupClick={onMatchupClick} />
-                            ))}
+                        <div className="flex flex-col gap-y-4">
+                            {round.matchups.map((matchup) => {
+                                const canBattle = matchup.track1 && matchup.track2 && !matchup.winner && onMatchupClick;
+                                return (
+                                    <div key={matchup.id} className="flex items-center gap-2">
+                                        <div className="flex-grow">
+                                            <MatchupCard matchup={matchup} />
+                                        </div>
+                                        <div className="w-10 h-10 flex-shrink-0">
+                                            {canBattle && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="rounded-full w-10 h-10 border-primary/50 text-primary/80 hover:bg-primary/10 hover:text-primary"
+                                                                onClick={() => onMatchupClick(matchup)}
+                                                            >
+                                                                <Zap className="h-5 w-5" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Start Battle</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
                 ))}
