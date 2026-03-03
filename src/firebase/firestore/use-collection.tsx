@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { onSnapshot, Query, DocumentData } from 'firebase/firestore';
+import { onSnapshot, Query, DocumentData, CollectionReference } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
 import { serializeFirestoreData } from '@/lib/utils';
@@ -28,8 +28,12 @@ export function useCollection<T>(query: Query<DocumentData> | null) {
             },
             async (error) => {
                 console.error(`Error fetching collection:`, error);
-                 const permissionError = new FirestorePermissionError({
-                    path: 'path' in query ? (query as any).path : 'unknown', // Best effort to get path
+                
+                // Best effort to get the path for error reporting.
+                const path = (query as CollectionReference)?.path || 'unknown path';
+
+                const permissionError = new FirestorePermissionError({
+                    path: path,
                     operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);
@@ -39,9 +43,8 @@ export function useCollection<T>(query: Query<DocumentData> | null) {
         );
 
         return () => unsubscribe();
-    // Using a string representation of the query for dependency array to avoid infinite loops
-    // Note: This is a simplified approach. For complex queries, a deep comparison or more stable key might be needed.
-    }, [query ? JSON.stringify(query) : 'null']);
+    // The parent component must memoize the query object for this to be efficient.
+    }, [query]);
 
     return { data, loading };
 }
