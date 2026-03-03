@@ -149,7 +149,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
         isOwner={isOwner}
       />
       
-      <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col items-center gap-12">
+      <main className="max-w-7xl mx-auto px-4 py-8 flex flex-col items-stretch gap-12">
         {group.activeBracket && matchupToDisplay ? (
           <CurrentMatchup 
             key={matchupToDisplay.id}
@@ -180,7 +180,7 @@ export default function GroupPage({ params }: { params: { id: string } }) {
 
         {group.activeBracket && group.activeBracket.status !== 'complete' && (
             <>
-                <Separator className="w-1/2 bg-border/20" />
+                <Separator className="w-1/2 mx-auto bg-border/20" />
                 <BracketVisualizer 
                     bracket={group.activeBracket} 
                     onMatchupClick={setSelectedMatchup}

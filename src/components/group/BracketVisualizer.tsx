@@ -27,7 +27,7 @@ const MatchupCard = ({ matchup, onMatchupClick }: { matchup: Matchup; onMatchupC
     const Wrapper = isClickable ? 'button' : 'div';
     const wrapperProps = {
         className: cn(
-            "overflow-hidden rounded-md border text-card-foreground shadow-sm w-full max-w-md",
+            "overflow-hidden rounded-md border text-card-foreground shadow-sm w-full",
             isClickable && "cursor-pointer hover:border-primary/80 hover:shadow-primary/20 hover:shadow-lg transition-all",
             !isClickable && "bg-card",
         ),
@@ -73,31 +73,25 @@ export default function BracketVisualizer({ bracket, onMatchupClick }: { bracket
                 </div>
             </div>
             
-            <div className="flex flex-col gap-12">
-                {rounds.map((round, rIndex) => {
-                    // Filter out matchups that are completely empty placeholders for future rounds
-                    const activeMatchups = round.matchups.filter(m => m.track1 || m.track2);
-                    
-                    // Don't render the round if it has no active matchups
-                    if (activeMatchups.length === 0) {
-                        return null;
-                    }
-
-                    return (
-                        <div key={round.id || `round-${rIndex}`}>
-                            <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-6 h-5">
-                                {round.name}
-                            </h4>
-                            <div className="flex flex-col items-center gap-4">
-                                {activeMatchups.map((matchup) => (
-                                    <MatchupCard key={matchup.id} matchup={matchup} onMatchupClick={onMatchupClick} />
-                                ))}
-                            </div>
+            <div className="flex flex-row gap-8 overflow-x-auto pb-8">
+                {rounds.map((round) => (
+                    <div key={round.id} className="flex flex-col gap-4 flex-shrink-0 w-72">
+                        <h4 className="text-center font-bold uppercase tracking-widest text-secondary mb-2 h-5">
+                            {round.name}
+                        </h4>
+                        <div className="flex flex-col gap-y-8">
+                            {round.matchups.map((matchup) => (
+                                <MatchupCard key={matchup.id} matchup={matchup} onMatchupClick={onMatchupClick} />
+                            ))}
                         </div>
-                    );
-                })}
+                    </div>
+                ))}
 
-                {winner && <WinnerDisplay winner={winner} albumName={album.name} />}
+                {winner && (
+                    <div className="flex-shrink-0 w-72">
+                        <WinnerDisplay winner={winner} albumName={album.name} />
+                    </div>
+                )}
             </div>
         </div>
     )
