@@ -21,11 +21,7 @@ export interface Matchup {
   track1: Track | null;
   track2: Track | null;
   winner: Track | null;
-  votes: {
-    track1: number;
-    track2: number;
-  };
-  voters?: string[]; // List of user IDs who have voted
+  votes: { [userId: string]: string }; // Map of userId to trackId
 }
 
 export interface Round {

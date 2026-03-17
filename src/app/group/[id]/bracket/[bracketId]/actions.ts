@@ -55,9 +55,8 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
                 id: crypto.randomUUID(),
                 track1: track1,
                 track2: track2,
-                votes: { track1: 0, track2: 0 },
+                votes: {},
                 winner: winner,
-                voters: [],
             });
         }
         
@@ -85,8 +84,7 @@ export async function startBracket(groupId: string, bracketId: string, tracks: T
                     track1: winner1 || null,
                     track2: winner2 || null,
                     winner: nextMatchupWinner,
-                    votes: { track1: 0, track2: 0 },
-                    voters: [],
+                    votes: {},
                 });
             }
             allRounds.push({

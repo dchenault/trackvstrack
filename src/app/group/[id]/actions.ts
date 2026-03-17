@@ -51,32 +51,34 @@ export async function castVote(
 
         // Ensure voting is on a valid, undecided matchup
         if (matchup.winner) {
-            throw new Error("This matchup has already been decided.");
+            console.log("This matchup has already been decided.");
+            return; // Not an error, just means someone else's vote decided it first.
         }
         if (!matchup.track1 || !matchup.track2) {
             throw new Error("Cannot vote on a matchup with a bye.");
         }
+        
+        // Ensure votes object exists
+        if (!matchup.votes) {
+            matchup.votes = {};
+        }
 
         // Prevent user from voting multiple times
-        if (!matchup.voters) matchup.voters = [];
-        if (matchup.voters.includes(userId)) {
+        if (matchup.votes[userId]) {
             throw new Error("You have already voted in this matchup.");
         }
 
         // Record the vote
-        matchup.voters.push(userId);
-        if (matchup.track1.id === winnerTrackId) {
-            matchup.votes.track1 = (matchup.votes.track1 || 0) + 1;
-        } else if (matchup.track2.id === winnerTrackId) {
-            matchup.votes.track2 = (matchup.votes.track2 || 0) + 1;
-        } else {
-             throw new Error('Voted track not found in this matchup.');
-        }
+        matchup.votes[userId] = winnerTrackId;
         
         // Check if all members have voted to decide the winner
-        if (matchup.voters.length >= totalMembers && totalMembers > 0) {
+        if (Object.keys(matchup.votes).length >= totalMembers && totalMembers > 0) {
+            // Tally votes
+            const votesForTrack1 = Object.values(matchup.votes).filter(v => v === matchup.track1!.id).length;
+            const votesForTrack2 = Object.values(matchup.votes).filter(v => v === matchup.track2!.id).length;
+
             // All votes are in, declare winner (track1 wins ties)
-            const finalWinner = matchup.votes.track1 >= matchup.votes.track2 ? matchup.track1 : matchup.track2;
+            const finalWinner = votesForTrack1 >= votesForTrack2 ? matchup.track1 : matchup.track2;
             matchup.winner = finalWinner;
 
             const isFinalRound = targetRoundIndex === activeBracket.rounds.length - 1;

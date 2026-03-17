@@ -27,7 +27,7 @@ export default function CurrentMatchup({
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   
-  const userHasVoted = authUser && matchup.voters?.includes(authUser.uid);
+  const userHasVoted = authUser && matchup.votes && authUser.uid in matchup.votes;
   const canVote = !matchup.winner && !isPending && authUser && !userHasVoted;
 
   const handleVote = (winningTrackId: string) => {
@@ -63,11 +63,11 @@ export default function CurrentMatchup({
     );
   }
   
-  const voteCount1 = matchup.votes.track1 || 0;
-  const voteCount2 = matchup.votes.track2 || 0;
+  const voteCount1 = matchup.votes ? Object.values(matchup.votes).filter(v => v === matchup.track1?.id).length : 0;
+  const voteCount2 = matchup.votes ? Object.values(matchup.votes).filter(v => v === matchup.track2?.id).length : 0;
   const totalVotes = voteCount1 + voteCount2;
-  const track1Percentage = totalVotes > 0 ? (voteCount1 / totalVotes) * 100 : 50;
-  const track2Percentage = totalVotes > 0 ? (voteCount2 / totalVotes) * 100 : 50;
+  const track1Percentage = totalVotes > 0 ? (voteCount1 / totalVotes) * 100 : 0;
+  const track2Percentage = totalVotes > 0 ? (voteCount2 / totalVotes) * 100 : 0;
 
   return (
     <div className="w-full max-w-4xl relative">
